@@ -177,10 +177,10 @@ namespace LaboratoryWork1
         /// <summary>
         /// Изменить курс
         /// </summary>
-        /// <param name="newCource"></param>
-        public void Cource(Usd newCource)
+        /// <param name="newCourse"></param>
+        public void Course(Usd newCourse)
         {
-            Product.CurrentCource = newCource;
+            Product.CurrentCourse = newCourse;
             foreach (var product in _storage.Where(s => s != null))
             {
                 product.Rub = product.Rub;
@@ -190,10 +190,10 @@ namespace LaboratoryWork1
         /// <summary>
         /// Изменить курс
         /// </summary>
-        /// <param name="newCource"></param>
-        public void Cource(Rub newCource)
+        /// <param name="newCourse"></param>
+        public void Course(Rub newCourse)
         {
-            Product.CurrentCource = newCource;
+            Product.CurrentCourse = newCourse;
             foreach (var product in _storage.Where(s => s != null))
             {
                 product.Rub = product.Rub;
@@ -204,14 +204,14 @@ namespace LaboratoryWork1
         /// Текущий курс
         /// </summary>
         /// <returns></returns>
-        public Cource Cource() => Product.CurrentCource;
+        public Course Course() => Product.CurrentCourse;
         #endregion
 
         /// <summary>
         /// Перегрузка метода ToString
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => _storage.Aggregate("Товар:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product.Name} по цене {product.Rub} руб. ({product.Usd} евро))\n"));
+        public override string ToString() => _storage.Aggregate("Товар:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product}\n"));
 
         #endregion
     }

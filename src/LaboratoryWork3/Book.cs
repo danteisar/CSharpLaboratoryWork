@@ -34,10 +34,10 @@ namespace LaboratoryWork3
 
         #endregion
 
-        public static bool operator ==(Book book1, Product book2) => book1?.Rub.Cost + book1?.Usd.Cost == book2?.Rub.Cost + book2?.Usd.Cost * (Rub)IProduct.Cource;
-        public static bool operator !=(Book book1, Product book2) => book1?.Rub.Cost + book1?.Usd.Cost != book2?.Rub.Cost + book2?.Usd.Cost * (Rub)IProduct.Cource;
-        public static bool operator >(Book book1, Product book2) => book1?.Rub.Cost + book1?.Usd.Cost > book2?.Rub.Cost + book2?.Usd.Cost * (Rub)IProduct.Cource;
-        public static bool operator <(Book book1, Product book2) => book1?.Rub.Cost + book1?.Usd.Cost < book2?.Rub.Cost + book2?.Usd.Cost * (Rub)IProduct.Cource;
+        public static bool operator ==(Book book1, Product book2) => book1?.Rub.Cost + book1?.Usd.Cost == book2?.Rub.Cost + book2?.Usd.Cost * (Rub)IProduct.Course;
+        public static bool operator !=(Book book1, Product book2) => book1?.Rub.Cost + book1?.Usd.Cost != book2?.Rub.Cost + book2?.Usd.Cost * (Rub)IProduct.Course;
+        public static bool operator >(Book book1, Product book2) => book1?.Rub.Cost + book1?.Usd.Cost > book2?.Rub.Cost + book2?.Usd.Cost * (Rub)IProduct.Course;
+        public static bool operator <(Book book1, Product book2) => book1?.Rub.Cost + book1?.Usd.Cost < book2?.Rub.Cost + book2?.Usd.Cost * (Rub)IProduct.Course;
 
         public override string ToString() => $"{Name}, Author:{Author}{(Tome == 0 ? string.Empty : $", Том: {Tome}")}, Страниц: {Pages}, Цена: {Rub} ({Usd})";
 

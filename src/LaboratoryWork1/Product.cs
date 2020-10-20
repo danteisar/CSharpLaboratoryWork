@@ -8,7 +8,7 @@ namespace LaboratoryWork1
     /// </summary>
     public abstract class Product
     {
-        public static Cource CurrentCource { get; set; } = (Rub)100;
+        public static Course CurrentCourse { get; set; } = (Rub)100;
 
         #region ctor
 
@@ -47,7 +47,7 @@ namespace LaboratoryWork1
             set
             {
                 _rub = value;
-                _usd = value * (Usd)CurrentCource;
+                _usd = value * (Usd)CurrentCourse;
             }
         }
 
@@ -59,7 +59,7 @@ namespace LaboratoryWork1
             get => _usd;
             set
             {
-                _rub = value * (Rub)CurrentCource;
+                _rub = value * (Rub)CurrentCourse;
                 _usd = value;
             }
         }

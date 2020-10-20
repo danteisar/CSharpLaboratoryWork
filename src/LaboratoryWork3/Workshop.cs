@@ -1,16 +1,20 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using Currency;
 
 namespace LaboratoryWork3
 {
-   public class Workshop<T> : IWorkshop<T> where T: class, IProduct
+    public class Workshop<T> : IWorkshop<T> where T: class, IProduct
     {
         #region ctor
 
         private Workshop(int slots)
         {
             _storage = new T[slots];
+            IProduct.CourseChanged += OnCourseChange;
         }
+
         public static implicit operator Workshop<T>(ushort count) => new Workshop<T>(count);
 
         public static implicit operator Workshop<T>(List<T> products)
@@ -23,6 +27,17 @@ namespace LaboratoryWork3
             }
 
             return workshop;
+        }
+
+        #endregion
+
+        #region Events
+
+        public event EventHandler<CourseEventArgs> CourseChanged;
+
+        private void OnCourseChange(Course oldCourse, Course newCourse)
+        {
+            CourseChanged?.Invoke(this, new CourseEventArgs(oldCourse, newCourse));
         }
 
         #endregion
@@ -41,6 +56,7 @@ namespace LaboratoryWork3
             {
                 if (index > _storage.Length - 1 || index < 0) return default(T);
                 var product = _storage[index];
+                CourseChanged -= _storage[index].OnCourseChange;
                 _storage[index] = default;
                 return product;
             }
@@ -49,6 +65,7 @@ namespace LaboratoryWork3
                 if (index > _storage.Length - 1 || index < 0) return;
                 if (_storage[index] != null) return;
                 _storage[index] = value;
+                CourseChanged += _storage[index].OnCourseChange;
             }
         }
 
@@ -173,38 +190,16 @@ namespace LaboratoryWork3
         #endregion
 
         #region Курс валют
-
-        /// <summary>
-        /// Изменить курс
-        /// </summary>
-        /// <param name="newCource"></param>
-        public void Cource(Usd newCource)
-        {
-            IProduct.Cource = newCource;
-            foreach (var product in _storage.Where(s => s != null))
-            {
-                product.Rub = product.Rub;
-            }
-        }
-
-        /// <summary>
-        /// Изменить курс
-        /// </summary>
-        /// <param name="newCource"></param>
-        public void Cource(Rub newCource)
-        {
-            IProduct.Cource = newCource;
-            foreach (var product in _storage.Where(s => s != null))
-            {
-                product.Rub = product.Rub;
-            }
-        }
-
+        
         /// <summary>
         /// Текущий курс
         /// </summary>
         /// <returns></returns>
-        public Cource Cource() => IProduct.Cource;
+        public Course Course
+        {
+            get => IProduct.Course;
+            set => IProduct.Course = value;
+        }
 
         #endregion
 
@@ -212,7 +207,7 @@ namespace LaboratoryWork3
         /// Перегрузка метода ToString
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => _storage.Aggregate("Товар:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product.Name} по цене {product.Rub} руб. ({product.Usd} евро))\n"));
+        public override string ToString() => _storage.Aggregate("Товар:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product}\n"));
 
         #endregion
     }

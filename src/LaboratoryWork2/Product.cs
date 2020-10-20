@@ -2,7 +2,6 @@
 
 namespace LaboratoryWork2
 {
-   
     /// <summary>
     /// Товар
     /// </summary>
@@ -45,7 +44,7 @@ namespace LaboratoryWork2
             set
             {
                 _rub = value;
-                _usd = value * (Usd)IProduct.Cource;
+                _usd = value * (Usd)IProduct.Course;
             }
         }
 
@@ -57,7 +56,7 @@ namespace LaboratoryWork2
             get => _usd;
             set
             {
-                _rub = value * (Rub)IProduct.Cource;
+                _rub = value * (Rub)IProduct.Course;
                 _usd = value;
             }
         }

@@ -1,4 +1,6 @@
-﻿namespace LaboratoryWork2
+﻿using Currency;
+
+namespace LaboratoryWork2
 {
     public interface IWorkshop<T> where T : class, IProduct
     {
@@ -63,19 +65,19 @@
         /// <summary>
         /// Изменить курс
         /// </summary>
-        /// <param name="newCource"></param>
-        void Cource(Usd newCource);
+        /// <param name="newCourse"></param>
+        void Course(Usd newCourse);
 
         /// <summary>
         /// Изменить курс
         /// </summary>
-        /// <param name="newCource"></param>
-        void Cource(Rub newCource);
+        /// <param name="newCourse"></param>
+        void Course(Rub newCourse);
 
         /// <summary>
         /// Текущий курс
         /// </summary>
         /// <returns></returns>
-        Cource Cource();
+        Course Course();
     }
 }

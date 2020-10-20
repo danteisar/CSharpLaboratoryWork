@@ -45,7 +45,7 @@ namespace LaboratoryWork3
             set
             {
                 _rub = value;
-                _usd = value * (Usd)IProduct.Cource;
+                _usd = value * (Usd)IProduct.Course;
             }
         }
 
@@ -57,7 +57,7 @@ namespace LaboratoryWork3
             get => _usd;
             set
             {
-                _rub = value * (Rub)IProduct.Cource;
+                _rub = value * (Rub)IProduct.Course;
                 _usd = value;
             }
         }

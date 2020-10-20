@@ -15,7 +15,7 @@ namespace LaboratoryWork1
         {
             // -----------------------------------------------------------------------------------------------------------
             Rub usdCost = 100;
-            Product.CurrentCource = usdCost;
+            Product.CurrentCourse = usdCost;
             Product book1 = new Book("Война и мир", (Rub)1534, "Лев Толстой", 308, 1);
             Product book2 = new Book("Война и мир", (Rub)1534, "Лев Толстой", 322, 2);
             Product book3 = new Book("Книга 3", (Usd)2, "Автор 2", 33, 2);
@@ -27,7 +27,7 @@ namespace LaboratoryWork1
             // ----------------------------------------------------------------------------------------------------------- I
            
             State(1);
-            Console.WriteLine($"\nТекущий курс: {workshop.Cource()}");
+            Console.WriteLine($"\nТекущий курс: {workshop.Course()}");
             Console.WriteLine(Environment.NewLine);
             // ----------------------------------------------------------------------------------------------------------- II
             
@@ -39,10 +39,10 @@ namespace LaboratoryWork1
             
             State(3);
             Usd s = 1m / 40;
-            Console.WriteLine(workshop.Cource());
+            Console.WriteLine(workshop.Course());
             Console.WriteLine("Смена курса валют");
-            workshop.Cource(s);
-            Console.WriteLine(workshop.Cource());
+            workshop.Course(s);
+            Console.WriteLine(workshop.Course());
             workshop.Put(book3, 3);
             Console.WriteLine(Environment.NewLine);
             Console.WriteLine(workshop);

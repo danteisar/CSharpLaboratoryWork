@@ -43,23 +43,23 @@
     /// <para>
     /// Можно неявно указать сколько стоит 1 единица валюты относительно второй, для примера:
     ///  </para>
-    /// <para><see cref="Cource"/> CurrentCource = (<see cref="Rub"/>)100; //Означает что 1 евро стоит 100 рублей. </para>
-    /// <para><see cref="Cource"/> CurrentCource = (<see cref="Usd"/>)0.1; //Означает что 1 рубль стоит 1 цент. </para>
+    /// <para><see cref="Course"/> CurrentCource = (<see cref="Rub"/>)100; //Означает что 1 евро стоит 100 рублей. </para>
+    /// <para><see cref="Course"/> CurrentCource = (<see cref="Usd"/>)0.1; //Означает что 1 рубль стоит 1 цент. </para>
     /// </summary>
-    public class Cource
+    public class Course
     {
         private Rub _rub;
         private Usd _usd;
-        private Cource(Rub rub, Usd usd)
+        private Course(Rub rub, Usd usd)
         {
             _rub = rub;
             _usd = usd;
         }
 
-        public static implicit operator Rub(Cource value) => value._rub / value._usd;
-        public static implicit operator Usd(Cource value) => value._usd / value._rub;
-        public static implicit operator Cource(Rub value) => new Cource(value, 1);
-        public static implicit operator Cource(Usd value) => new Cource(1, value);
+        public static implicit operator Rub(Course value) => value._rub / value._usd;
+        public static implicit operator Usd(Course value) => value._usd / value._rub;
+        public static implicit operator Course(Rub value) => new Course(value, 1);
+        public static implicit operator Course(Usd value) => new Course(1, value);
 
         public override string ToString() => _rub > _usd
             ? $"Курс {_usd} по {_rub}"

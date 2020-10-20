@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Currency;
 
 namespace LaboratoryWork2
 {
@@ -177,10 +178,10 @@ namespace LaboratoryWork2
         /// <summary>
         /// Изменить курс
         /// </summary>
-        /// <param name="newCource"></param>
-        public void Cource(Usd newCource)
+        /// <param name="newCourse"></param>
+        public void Course(Usd newCourse)
         {
-            IProduct.Cource = newCource;
+            IProduct.Course = newCourse;
             foreach (var product in _storage.Where(s => s != null))
             {
                 product.Rub = product.Rub;
@@ -190,10 +191,10 @@ namespace LaboratoryWork2
         /// <summary>
         /// Изменить курс
         /// </summary>
-        /// <param name="newCource"></param>
-        public void Cource(Rub newCource)
+        /// <param name="newCourse"></param>
+        public void Course(Rub newCourse)
         {
-            IProduct.Cource = newCource;
+            IProduct.Course = newCourse;
             foreach (var product in _storage.Where(s => s != null))
             {
                 product.Rub = product.Rub;
@@ -204,7 +205,7 @@ namespace LaboratoryWork2
         /// Текущий курс
         /// </summary>
         /// <returns></returns>
-        public Cource Cource() => IProduct.Cource;
+        public Course Course() => IProduct.Course;
 
         #endregion
 
@@ -212,7 +213,7 @@ namespace LaboratoryWork2
         /// Перегрузка метода ToString
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => _storage.Aggregate("Товар:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product.Name} по цене {product.Rub} руб. ({product.Usd} евро))\n"));
+        public override string ToString() => _storage.Aggregate("Товар:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product}\n"));
 
         #endregion
     }

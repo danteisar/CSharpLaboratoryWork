@@ -2,6 +2,9 @@
 
 namespace LaboratoryWork2
 {
+    /// <summary>
+    /// Комикс
+    /// </summary>
     public sealed class Comix : Book
     {
         public Comix(string name, Usd price, string author, uint pages) : base(name, price, author, pages)

@@ -1,4 +1,6 @@
-﻿namespace LaboratoryWork3
+﻿using Currency;
+
+namespace LaboratoryWork3
 {
     public interface IWorkshop<T> where T : class, IProduct
     {
@@ -61,21 +63,9 @@
         void SortedByCost();
 
         /// <summary>
-        /// Изменить курс
-        /// </summary>
-        /// <param name="newCource"></param>
-        void Cource(Usd newCource);
-
-        /// <summary>
-        /// Изменить курс
-        /// </summary>
-        /// <param name="newCource"></param>
-        void Cource(Rub newCource);
-
-        /// <summary>
         /// Текущий курс
         /// </summary>
         /// <returns></returns>
-        Cource Cource();
+        Course Course { get; set; }
     }
 }

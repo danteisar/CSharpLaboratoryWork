@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Currency;
 
 namespace LaboratoryWork2
 { 
@@ -15,7 +16,7 @@ namespace LaboratoryWork2
         {
             // -----------------------------------------------------------------------------------------------------------
             Rub usdCost = 100;
-            IProduct.Cource = usdCost;
+            IProduct.Course = usdCost;
 
             IProduct book1 = new Book("Война и мир", (Rub) 1534, "Лев Толстой", 308, 1);
             IBook book2 = new Book("Война и мир", (Rub) 1534, "Лев Толстой", 322, 2);
@@ -36,7 +37,7 @@ namespace LaboratoryWork2
             // ----------------------------------------------------------------------------------------------------------- I
 
             State(1);
-            Console.WriteLine($"\nТекущий курс: {workshop1.Cource()}");
+            Console.WriteLine($"\nТекущий курс: {workshop1.Course()}");
             Console.WriteLine(Environment.NewLine);
             // ----------------------------------------------------------------------------------------------------------- II
 
@@ -49,10 +50,10 @@ namespace LaboratoryWork2
            
             State(3);
             Usd s = 1m / 40;
-            Console.WriteLine(workshop.Cource());
+            Console.WriteLine(workshop.Course());
             Console.WriteLine("Смена курса валют");
-            workshop.Cource(s);
-            Console.WriteLine(workshop.Cource());
+            workshop.Course(s);
+            Console.WriteLine(workshop.Course());
             workshop.Put(book3, 3);
             Console.WriteLine(Environment.NewLine);
             Console.WriteLine(workshop);
