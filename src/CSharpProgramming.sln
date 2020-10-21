@@ -7,9 +7,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaboratoryWork1", "Laborato
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaboratoryWork2", "LaboratoryWork2\LaboratoryWork2.csproj", "{0FA3B0F5-A2DB-42B9-B0B6-C45CAF481B3E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LaboratoryWork3", "LaboratoryWork3\LaboratoryWork3.csproj", "{6CAC9AC2-8705-44E1-9132-6B15E95DA497}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaboratoryWork3", "LaboratoryWork3\LaboratoryWork3.csproj", "{6CAC9AC2-8705-44E1-9132-6B15E95DA497}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Currency", "Currency\Currency.csproj", "{930633CF-51E5-48FA-AF99-7C4E54ABA0D8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Currency", "Currency\Currency.csproj", "{930633CF-51E5-48FA-AF99-7C4E54ABA0D8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{49284D42-D8E5-45C7-9912-993350C4EFDC}"
+	ProjectSection(SolutionItems) = preProject
+		..\readme.md = ..\readme.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

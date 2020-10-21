@@ -42,7 +42,7 @@ namespace LaboratoryWork3
         /// <summary>
         /// Изменение курса
         /// </summary>
-        static CourseChanged CourseChanged;
+        static CourseChanged CourseChanged { get; set; }
 
         #endregion
     }
