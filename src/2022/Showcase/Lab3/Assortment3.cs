@@ -1,27 +1,28 @@
-﻿using Product;
+﻿using Barcode.Lab1;
+using Product.Lab3;
+using Showcase.Lab2;
 
-namespace Showcase;
+namespace Showcase.Lab3;
 
-public class Assortment2<T> : IAssortment<T> where T : class, IProduct
+public class Assortment3<T> : IAssortment3<T> where T : class, IThing3
 {
     #region initialization
 
-    private Assortment2(int size)
+    private Assortment3(int size)
     {
         Size = size;
         _products = new T[size];
-        Id = _nextId++;
+        Id = Store.Amount++;
     }
 
     private readonly T[] _products;
 
-    public static implicit operator Assortment2<T>(int size) => new(size);
+    public static implicit operator Assortment3<T>(int size) => new(size);
 
     #endregion
 
     #region Props & _fields
 
-    private static int _nextId = 1;
     private int _id;
 
     public int Id
@@ -151,8 +152,8 @@ public class Assortment2<T> : IAssortment<T> where T : class, IProduct
     private void SetBarcode(T product, int index)
     {
         if (product == null) return;
-        product.Barcode.Text = $"{Id} {index + 1} {product.Id}";
+        product.Barcode3 = (Barcode1)$"{Id} {index + 1} {product.Id}";
     }
 
-    public override string ToString() => _products.Aggregate($"\tАссортимент #{Id}:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product}\n"));
+    public override string ToString() => _products.Aggregate($"\tАссортимент #{Id}:\n", (current, product) => current + (product == null ? "\t- пусто -\n" : $"{product}\n"));
 }

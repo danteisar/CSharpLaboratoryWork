@@ -1,26 +1,27 @@
-﻿namespace Showcase;
+﻿using Product.Lab2;
 
-public class Assortment
+namespace Showcase.Lab2;
+
+public class Assortment2
 {
     #region initialization
-    
-    private Assortment(int size)
+
+    private Assortment2(int size)
     {
         Size = size;
-        _products = new Product.Product[size];
-        Id = _nextId++;
+        _products = new Thing[size];
+        Id = Store.Amount++;
     }
 
-    private readonly Product.Product[] _products;
+    private readonly Thing[] _products;
 
-    public static implicit operator Assortment(int size) => new(size);
+    public static implicit operator Assortment2(int size) => new(size);
 
     #endregion
 
     #region Props & _fields
 
-    private static int _nextId = 1;
-    private  int _id;
+    private int _id;
 
     public int Id
     {
@@ -37,10 +38,9 @@ public class Assortment
 
     #endregion
 
-
     #region index
 
-    public Product.Product this[int index]
+    public Thing this[int index]
     {
         get
         {
@@ -58,23 +58,23 @@ public class Assortment
             SetBarcode(value, index);
         }
     }
-    
-    public void Push(Product.Product product)
+
+    public void Push(Thing thing)
     {
-        Push(product, Array.IndexOf(_products, null));
+        Push(thing, Array.IndexOf(_products, null));
     }
 
-    public void Push(Product.Product product, int index)
+    public void Push(Thing thing, int index)
     {
-        this[index] = product;
+        this[index] = thing;
     }
 
-    public Product.Product Pop()
+    public Thing Pop()
     {
         return this[Find()];
     }
 
-    public Product.Product Pop(int index)   
+    public Thing Pop(int index)
     {
         return this[index];
     }
@@ -84,10 +84,10 @@ public class Assortment
         (this[index1], this[index2]) = (this[index2], this[index1]);
     }
 
-    public Product.Product Replace(Product.Product product, int index)
+    public Thing Replace(Thing thing, int index)
     {
         var tmp = this[index];
-        this[index] = product;
+        this[index] = thing;
         return tmp;
     }
 
@@ -97,14 +97,14 @@ public class Assortment
 
     public int Find()
     {
-        return Array.IndexOf(_products, _products.FirstOrDefault(x => x!=null));
+        return Array.IndexOf(_products, _products.FirstOrDefault(x => x != null));
     }
 
     public int Find(int id)
     {
         return Array.IndexOf(_products, _products.FirstOrDefault(x => x?.Id == id));
     }
-        
+
     public int Find(string name)
     {
         return Array.IndexOf(_products, _products.FirstOrDefault(x => x?.Name == name));
@@ -128,7 +128,7 @@ public class Assortment
         OrderBy(showcase);
     }
 
-    private void OrderBy(IEnumerable<Product.Product> products)
+    private void OrderBy(IEnumerable<Thing> products)
     {
         foreach (var product in products.OrderBy(i => i?.Name))
         {
@@ -146,11 +146,11 @@ public class Assortment
         }
     }
 
-    private void SetBarcode(Product.Product product, int index)
+    private void SetBarcode(Thing thing, int index)
     {
-        if (product == null) return;
-        product.Barcode.Text = $"{Id} {index + 1} {product.Id}";
+        if (thing == null) return;
+        thing.Barcode.Text = $"{Id} {index + 1} {thing.Id}";
     }
 
-    public override string ToString() => _products.Aggregate($"\tАссортимент #{Id}:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product}\n"));
+    public override string ToString() => _products.Aggregate($"\tАссортимент #{Id}:\n", (current, product) => current + (product == null ? "\t- пусто -\n" : $"{product}\n"));
 }

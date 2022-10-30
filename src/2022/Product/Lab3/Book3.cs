@@ -1,13 +1,13 @@
-﻿namespace Product;
+﻿namespace Product.Lab3;
 
-public class Book : Product
+public class Book3 : Thing3
 {
     public string Author { get; set; }
     public int Year { get; set; }
     public decimal Price { get; set; }
 
-    public Book(int id, string name,  string author, int year
-    , decimal price) : base(id, name)
+    public Book3(int id, string name, string author, int year
+        , decimal price) : base(id, name)
     {
         Author = author;
         Year = year;

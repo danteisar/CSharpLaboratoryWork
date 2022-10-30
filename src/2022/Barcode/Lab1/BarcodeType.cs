@@ -1,4 +1,4 @@
-﻿namespace Barcode;
+﻿namespace Barcode.Lab1;
 
 /// <summary>
 ///     Формать сборки штрих-кода

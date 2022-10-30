@@ -13,6 +13,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2021", "2021", "{F3FE2B46-56FC-40AA-9B72-7E00261E091A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2022", "2022", "{0B2D2C72-E33D-425A-B9E3-F5C034709CAD}"
+	ProjectSection(SolutionItems) = preProject
+		..\readme.md = ..\readme.md
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Currency", "2020\Currency\Currency.csproj", "{D0325E26-11D8-4AFC-B356-ABDE594DABF7}"
 EndProject

@@ -1,8 +1,10 @@
-﻿namespace Product;
+﻿using Barcode.Lab1;
 
-public abstract class Product : IProduct
+namespace Product.Lab2;
+
+public abstract class Thing
 {
-    protected Product(int id, string name)
+    protected Thing(int id, string name)
     {
         Name = name;
         Id = id;
@@ -17,18 +19,14 @@ public abstract class Product : IProduct
         {
             if (_id == value) return;
             _id = value;
-            if (Barcode == null) 
-                Barcode = new Barcode.Barcode(_id.ToString());
-            else
-                Barcode.Text = _id.ToString();
+            Barcode = _id.ToString();
         }
     }   
     protected abstract string Type { get; }
     public string Name { get; set; }
     protected abstract string Information { get; }
-    public Barcode.Barcode Barcode { get; set; }
-
-
+    public Barcode1 Barcode { get; set; }
+    
     public override string ToString()
     {
         return $"\n\t{Type}:\t{Name}\n\t{Information}\n\n{Barcode}";

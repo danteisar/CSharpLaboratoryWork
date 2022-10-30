@@ -1,8 +1,8 @@
-﻿using Product;
+﻿using Product.Lab4;
 
-namespace Showcase;
+namespace Showcase.Lab4;
 
-public interface IAssortment<T> where T : class, IProduct
+public interface IAssortment4<T> where T : class, IThing4
 {
     int Id { get; set; }
     int Size { get; }

@@ -1,4 +1,4 @@
-﻿namespace Barcode;
+﻿namespace Barcode.Lab1;
 
 public static class BarcodeGenerator
 {
@@ -33,15 +33,27 @@ public static class BarcodeGenerator
         return empty + s + empty;
     }
 
-    public static string Parse(this string text, bool optimize)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="code"></param>
+    /// <param name="optimize"></param>
+    /// <returns></returns>
+    public static int Encrypt(this string code, bool optimize)
+    {
+        code.Encrypt(optimize, out var paddings);
+        return paddings;
+    }
+
+    private static string Parse(this string text, bool optimize)
     {
         List<int> values = new();
 
         if (int.TryParse(text, out _) && text.Length % 2 == 0)
             return text.Parse(StartWithNumber, GetTypeNumbers, 2, values);
 
-        return optimize 
-            ? CheckMode(ref text, values) 
+        return optimize
+            ? CheckMode(ref text, values)
             : text.Parse(StartWithText, GetTypeText, 1, values);
     }
 
@@ -52,7 +64,7 @@ public static class BarcodeGenerator
             .TakeWhile(tmp => int.TryParse(tmp, out _)).Count();
         return cnt;
     }
-    
+
 
     private static string CheckMode(ref string text, IList<int> values, bool isStart = true)
     {
@@ -65,13 +77,13 @@ public static class BarcodeGenerator
         {
             str = text[..(cnt * 2)];
             text = text.Remove(0, str.Length);
-            str = isStart 
-                ? str.Parse(StartWithNumber, GetTypeNumbers, 2, values, false) 
+            str = isStart
+                ? str.Parse(StartWithNumber, GetTypeNumbers, 2, values, false)
                 : str.Parse(ChangeToNumbers, GetTypeNumbers, 2, values, false);
         }
         else
         {
-            str = cnt == 1 
+            str = cnt == 1
                 ? text[..2]
                 : string.Empty;
 
@@ -98,9 +110,9 @@ public static class BarcodeGenerator
                 : str.Parse(ChangeToText, GetTypeText, 1, values, false);
         }
 
-        
-        return str + CheckMode(ref text, values, false); 
-    } 
+
+        return str + CheckMode(ref text, values, false);
+    }
 
     private static string Parse(this string text, Func<IList<int>, string> start, Func<string, IList<int>, string> getType, int chunkSize,
         IList<int> values, bool isFull = true)
@@ -179,12 +191,23 @@ public static class BarcodeGenerator
         values.Add(99);
         return SwitchToNumbers;
     }
-    
+
 
     #region Help
 
     public static char GetBar(string code) => Bars[Convert.ToInt32(code, 2)];
 
+    /*
+
+██████████████████████████████████████████████████████████████
+███ ▌█▐█▌█▌▐▐█  █▐▌▌█▐ ██  ▌ ▌▌▌█  █ █▐▐█▌▌▐▌██▐ ▐  ▌▐█ ▐▐ ███
+███ ▌█▐█▌█▌▐▐█  █▐▌▌█▐ ██  ▌ ▌▌▌█  █ █▐▐█▌▌▐▌██▐ ▐  ▌▐█ ▐▐ ███
+███ ▌█▐█▌█▌▐▐█  █▐▌▌█▐ ██  ▌ ▌▌▌█  █ █▐▐█▌▌▐▌██▐ ▐  ▌▐█ ▐▐ ███
+███ ▌█▐█▌█▌▐▐█  █▐▌▌█▐ ██  ▌ ▌▌▌█  █ █▐▐█▌▌▐▌██▐ ▐  ▌▐█ ▐▐ ███
+███ ▌█▐█▌█▌▐▐█  █▐▌▌█▐ ██  ▌ ▌▌▌█  █ █▐▐█▌▌▐▌██▐ ▐  ▌▐█ ▐▐ ███
+██████████████████████████████████████████████████████████████
+                            Example
+    */
 
     /// <summary>
     ///  Высота штрихкода (в строках)
@@ -192,7 +215,7 @@ public static class BarcodeGenerator
     private const int Height = 5;
 
     /// <summary>
-    ///     Варианты штрихов
+    ///    Допустимые варианты штрихов
     /// </summary>
     public static readonly char[] Bars = { '█', '▌', '▐', ' ' };
 
@@ -278,6 +301,17 @@ public static class BarcodeGenerator
         "90","91","92","93","94","95","96","97","98","99"
     };
 
+    //  █▀▀▀▀▀█ ▀█▄█▄ █▀▀▀▀▀█
+    //  █ ███ █ ▄▀ ▄  █ ███ █
+    //  █ ▀▀▀ █ █▀▄▄▀ █ ▀▀▀ █
+    //  ▀▀▀▀▀▀▀ █▄▀▄█ ▀▀▀▀▀▀▀
+    //  █ ▄ ▀▄▀▀▀ ▄█▄▀▀▀▀█▄▄▀
+    //  █▄█▀█ ▀▄▀█ ▀ ▄█▀█  ▀▄
+    //  ▀  ▀  ▀▀█▀▀ ███▀▄ ▄▄█
+    //  █▀▀▀▀▀█ ▀▄▄▄█▀ ▄▀  █▄
+    //  █ ███ █ ▀  █▄ ▀▄▄█▄▄█
+    //  █ ▀▀▀ █  █▄▀ ▄█ █▀   
+    //  ▀▀▀▀▀▀▀ ▀ ▀ ▀▀▀▀ ▀  ▀
 
     #endregion
 }
