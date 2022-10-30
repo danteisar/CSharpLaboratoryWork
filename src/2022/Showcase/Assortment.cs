@@ -152,5 +152,5 @@ public class Assortment
         product.Barcode.Text = $"{Id} {index + 1} {product.Id}";
     }
 
-    public override string ToString() => _products.Aggregate($"Ассортимент #{Id}:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product}\n"));
+    public override string ToString() => _products.Aggregate($"\tАссортимент #{Id}:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product}\n"));
 }

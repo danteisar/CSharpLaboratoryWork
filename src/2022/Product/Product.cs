@@ -23,14 +23,14 @@ public abstract class Product : IProduct
                 Barcode.Text = _id.ToString();
         }
     }   
-    public abstract string Type { get; }
+    protected abstract string Type { get; }
     public string Name { get; set; }
-    public abstract string Information { get; }
+    protected abstract string Information { get; }
     public Barcode.Barcode Barcode { get; set; }
 
 
     public override string ToString()
     {
-        return $"\n{Type}: {Name}\n{Information}\n{Barcode}";
+        return $"\n\t{Type}:\t{Name}\n\t{Information}\n\n{Barcode}";
     }
 }

@@ -130,7 +130,7 @@ public class Assortment2<T> : IAssortment<T> where T : class, IProduct
         OrderBy(showcase);
     }
 
-    public void OrderBy(IEnumerable<T> products)
+    private void OrderBy(IEnumerable<T> products)
     {
         foreach (var product in products.OrderBy(i => i?.Name))
         {
@@ -154,5 +154,5 @@ public class Assortment2<T> : IAssortment<T> where T : class, IProduct
         product.Barcode.Text = $"{Id} {index + 1} {product.Id}";
     }
 
-    public override string ToString() => _products.Aggregate($"Ассортимент #{Id}:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product}\n"));
+    public override string ToString() => _products.Aggregate($"\tАссортимент #{Id}:\n", (current, product) => current + (product == null ? "- пусто -\n" : $"{product}\n"));
 }

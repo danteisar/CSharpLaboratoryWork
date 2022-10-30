@@ -18,5 +18,4 @@ public interface IAssortment<T> where T : class, IProduct
     int Find(string name);
     void OrderById();
     void OrderByName();
-    void OrderBy(IEnumerable<T> products);
 }

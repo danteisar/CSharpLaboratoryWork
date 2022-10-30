@@ -14,6 +14,6 @@ public class Book : Product
         Price = price;
     }
 
-    public override string Type => "Книга";
-    public override string Information => $"Автор: {Author}\nГод: {Year}\nЦена: {Price}";
+    protected override string Type => "Книга";
+    protected override string Information => $"Автор:\t{Author}\n\tГод:\t{Year}\n\tЦена:\t{Price}";
 }
