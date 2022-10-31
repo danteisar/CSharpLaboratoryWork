@@ -20,14 +20,14 @@ public abstract class Thing4 : IThing4
             if (_id == value) return;
             var oldId = _id;
             _id = value;
-            Barcode3 = (Barcode3)_id.ToString();
+            Barcode = (Barcode3)_id.ToString();
             OnIdChange(oldId, value);
         }
     }
     protected abstract string Type { get; }
     public string Name { get; set; }
     protected abstract string Information { get; }
-    public IBarcode3 Barcode3 { get; set; }
+    public IBarcode3 Barcode { get; set; }
 
     public event EventHandler<Thing4IdEventArgs> ThingIdChanged;
 
@@ -38,6 +38,6 @@ public abstract class Thing4 : IThing4
 
     public override string ToString()
     {
-        return $"\n\t{Type}:\t{Name}\n\t{Information}\n\n{Barcode3}";
+        return $"\n\t{Type}:\t{Name}\n\t{Information}\n\n{Barcode}";
     }
 }

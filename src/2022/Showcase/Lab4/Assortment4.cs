@@ -10,11 +10,11 @@ public class Assortment4<T> : IAssortment4<T> where T : class, IThing4
     private Assortment4(int size)
     {
         Size = size;
-        _products = new T[size];
+        _things = new T[size];
         Id = Store.Amount++;
     }
 
-    private readonly T[] _products;
+    private readonly T[] _things;
 
     public static implicit operator Assortment4<T>(int size) => new(size);
 
@@ -47,42 +47,46 @@ public class Assortment4<T> : IAssortment4<T> where T : class, IThing4
     {
         get
         {
-            if (index > _products.Length - 1 || index < 0) return null;
-            var product = _products[index];
-            _products[index] = null;
-            _idChanged -= product.SetBarcode;
-            product.ThingIdChanged -= ValueOnThingIdChanged;
-            return product;
+            if (index > _things.Length - 1 || index < 0) return null;
+            var thing = _things[index];
+            _things[index] = null;
+           
+            _idChanged -= thing.SetBarcode;
+            thing.ThingIdChanged -= ThingOnIdChanged;
+            
+            return thing;
         }
-        set
+        set 
         {
-            if (index > _products.Length - 1 || index < 0) return;
-            if (_products[index] != null) return;
-            _products[index] = value;
+            if (index > _things.Length - 1 || index < 0) return;
+            if (_things[index] != null) return;
+            _things[index] = value;
+            
             _idChanged += value.SetBarcode;
-            value.ThingIdChanged += ValueOnThingIdChanged;
+            value.ThingIdChanged += ThingOnIdChanged;
+            
             value.SetBarcode(Id, index);
         }
     }
 
-    private void ValueOnThingIdChanged(object sender, Thing4IdEventArgs e)
+    private void ThingOnIdChanged(object sender, Thing4IdEventArgs e)
     {
-       if (sender is not T thing) return;
-       var index = Find(thing.Id);
-       Replace(thing, index);
+        if (sender is not T thing) return;
+        var index = Find(thing.Id);
+        Replace(thing, index);
     }
 
-    public void Push(T product) => Push(product, Array.IndexOf(_products, null));
-    public void Push(T product, int index) => this[index] = product;
+    public void Push(T thing) => Push(thing, Array.IndexOf(_things, null));
+    public void Push(T thing, int index) => this[index] = thing;
 
     public T Pop() => this[Find()];
     public T Pop(int index) => this[index];
 
     public void Swap(int index1, int index2) => (this[index1], this[index2]) = (this[index2], this[index1]);
-    public T Replace(T product, int index)
+    public T Replace(T thing, int index)
     {
         var tmp = this[index];
-        this[index] = product;
+        this[index] = thing;
         return tmp;
     }
 
@@ -93,24 +97,24 @@ public class Assortment4<T> : IAssortment4<T> where T : class, IThing4
     public int Find() => Find(x => x != null);
     public int Find(int id) => Find(x => x?.Id == id);
     public int Find(string name) => Find(x => x?.Name == name);
-    private int Find(Func<T, bool> condition) => Array.IndexOf(_products, _products.FirstOrDefault(condition));
+    private int Find(Func<T, bool> condition) => Array.IndexOf(_things, _things.FirstOrDefault(condition));
 
     public void OrderById() => OrderBy(x => x.Id);
     public void OrderByName() => OrderBy(x => x.Name);
 
     private void OrderBy<TD>(Func<T, TD> keySelector)
     {
-        var products = _products
+        var things = _things
             .Where(p => p != null)
             .Select(_ => Pop());
 
-        foreach (var product in products.OrderBy(keySelector))
+        foreach (var thing in things.OrderBy(keySelector))
         {
-            Push(product);
+            Push(thing);
         }
     }
 
     #endregion
 
-    public override string ToString() => _products.Aggregate($"\tАссортимент #{Id}:\n", (current, product) => current + (product == null ? "\t- пусто -\n" : $"{product}\n"));
+    public override string ToString() => _things.Aggregate($"\tАссортимент #{Id}:\n", (current, thing) => current + (thing == null ? "\t- пусто -\n" : $"{thing}\n"));
 }

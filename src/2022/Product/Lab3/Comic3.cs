@@ -14,7 +14,7 @@ public sealed class Comic3 : Book3, IThing3
     private Barcode3 _barcode3;
 
     // Иммунитет по измению штрих кода
-    IBarcode3 IThing3.Barcode3
+    IBarcode3 IThing3.Barcode
     {
         get => _barcode3;
         set => _barcode3 = Id.ToString();

@@ -1,6 +1,6 @@
 ﻿namespace Product.Lab2;
 
-public class Book2 : Thing
+public class Book2 : Thing2
 {
     public string Author { get; set; }
     public int Year { get; set; }

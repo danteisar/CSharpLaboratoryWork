@@ -6,5 +6,5 @@ public interface IThing3
 {
     int Id { get; set; }
     string Name { get; set; }   
-    IBarcode3 Barcode3 { get; set; }
+    IBarcode3 Barcode { get; set; }
 }

@@ -2,9 +2,9 @@
 
 namespace Product.Lab2;
 
-public abstract class Thing
+public abstract class Thing2
 {
-    protected Thing(int id, string name)
+    protected Thing2(int id, string name)
     {
         Name = name;
         Id = id;

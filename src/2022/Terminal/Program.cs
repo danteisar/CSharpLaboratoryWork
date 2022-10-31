@@ -16,10 +16,9 @@ static void TestLab1()
     Console.WriteLine(barcode);
 }
 
-
 static void TestLab2()
 {
-    var lab1Data = new List<Thing>
+    var lab1Data = new List<Thing2>
     {
         new Book2(3000, "ВОЙНА И МИРЪ III", "Л.Н. Толстой", 1867, 300000),
         new Book2(1000, "ВОЙНА И МИРЪ I", "Л.Н. Толстой", 1863, 1000000),
@@ -29,21 +28,16 @@ static void TestLab2()
 
     Assortment2 a1 = 4;
 
-    Test(a1, lab1Data); 
-}
-
-static void Test(Assortment2 a, List<Thing> list)
-{
     Console.WriteLine("".PadLeft(80, '='));
-    foreach (var product in list)
+    foreach (var product in lab1Data)
     {
-        a.Push(product);
+        a1.Push(product);
     }
 
-    a.OrderByName();
-    a.Id++;
+    a1.OrderByName();
+    a1.Id++;
 
-    Console.WriteLine(a);
+    Console.WriteLine(a1);
 }
 
 #endregion
@@ -68,15 +62,14 @@ static void TestLab3()
         new (7777, "Ходячие мертвецы", "Р. Кирман", 2003, 2257)
     };
 
-    Assortment3<IThing3> a1 = 4;
+    Assortment3<IThing3> a1 = 7;
     Assortment3<Comic3> a2 = 3;
 
-    Test3(a1, lab3Data);
-    Test3(a1, lab3Data2.Select(x => x as IThing3).ToList());
+    Test3(a1, lab3Data.Concat(lab3Data2.Select(x => x as IThing3)));
     Test3(a2, lab3Data2);
 }
 
-static void Test3<T>(IAssortment3<T> a, List<T> list) where T : class, IThing3
+static void Test3<T>(IAssortment3<T> a, IEnumerable<T> list) where T : class, IThing3
 {
     Console.WriteLine("".PadLeft(80, '='));
     foreach (var product in list)
@@ -110,24 +103,26 @@ static void TestLab4()
         new (7777, "Ходячие мертвецы", "Р. Кирман", 2003, 2257)
     };
 
-    Assortment4<IThing4> a1 = 4;
+    Assortment4<IThing4> a1 = 7;
     Assortment4<Comic4> a2 = 3;
 
-    Test4(a1, lab4Data);
-    Test4(a1, lab4Data2.Select(x => x as IThing4).ToList());
-    Test4(a2, lab4Data2);
+    var data = lab4Data.Concat(lab4Data2.Select(x => x as IThing4));
+    
+    Test4(a1, data, lab4Data[0]);
+    Test4(a2, lab4Data2, lab4Data2[0]);
 }
 
-static void Test4<T>(IAssortment4<T> a, List<T> list) where T : class, IThing4
+static void Test4<T>(IAssortment4<T> a, IEnumerable<T> list, T test) where T : class, IThing4
 {
     Console.WriteLine("".PadLeft(80, '='));
     foreach (var product in list)
     {
         a.Push(product);
     }
-
     a.OrderByName();
+
     a.Id++;
+    test.Id++;
 
     Console.WriteLine(a);
 }

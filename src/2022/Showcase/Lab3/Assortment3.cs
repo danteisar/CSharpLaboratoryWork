@@ -11,11 +11,11 @@ public class Assortment3<T> : IAssortment3<T> where T : class, IThing3
     private Assortment3(int size)
     {
         Size = size;
-        _products = new T[size];
+        _things = new T[size];
         Id = Store.Amount++;
     }
 
-    private readonly T[] _products;
+    private readonly T[] _things;
 
     public static implicit operator Assortment3<T>(int size) => new(size);
 
@@ -40,36 +40,35 @@ public class Assortment3<T> : IAssortment3<T> where T : class, IThing3
 
     #endregion
 
-
     #region index
 
     public T this[int index]
     {
         get
         {
-            if (index > _products.Length - 1 || index < 0) return null;
-            var product = _products[index];
-            _products[index] = null;
-            return product;
+            if (index > _things.Length - 1 || index < 0) return null;
+            var thing = _things[index];
+            _things[index] = null;
+            return thing;
         }
         set
         {
-            if (index > _products.Length - 1 || index < 0) return;
-            if (_products[index] != null) return;
-            _products[index] = value;
+            if (index > _things.Length - 1 || index < 0) return;
+            if (_things[index] != null) return;
+            _things[index] = value;
 
             SetBarcode(value, index);
         }
     }
 
-    public void Push(T product)
+    public void Push(T thing)
     {
-        Push(product, Array.IndexOf(_products, null));
+        Push(thing, Array.IndexOf(_things, null));
     }
 
-    public void Push(T product, int index)
+    public void Push(T thing, int index)
     {
-        this[index] = product;
+        this[index] = thing;
     }
 
     public T Pop()
@@ -87,10 +86,10 @@ public class Assortment3<T> : IAssortment3<T> where T : class, IThing3
         (this[index1], this[index2]) = (this[index2], this[index1]);
     }
 
-    public T Replace(T product, int index)
+    public T Replace(T thing, int index)
     {
         var tmp = this[index];
-        this[index] = product;
+        this[index] = thing;
         return tmp;
     }
 
@@ -100,22 +99,22 @@ public class Assortment3<T> : IAssortment3<T> where T : class, IThing3
 
     public int Find()
     {
-        return Array.IndexOf(_products, _products.FirstOrDefault(x => x != null));
+        return Array.IndexOf(_things, _things.FirstOrDefault(x => x != null));
     }
 
     public int Find(int id)
     {
-        return Array.IndexOf(_products, _products.FirstOrDefault(x => x?.Id == id));
+        return Array.IndexOf(_things, _things.FirstOrDefault(x => x?.Id == id));
     }
 
     public int Find(string name)
     {
-        return Array.IndexOf(_products, _products.FirstOrDefault(x => x?.Name == name));
+        return Array.IndexOf(_things, _things.FirstOrDefault(x => x?.Name == name));
     }
 
     public void OrderById()
     {
-        var showcase = _products
+        var showcase = _things
             .Where(p => p != null)
             .Select(_ => Pop());
 
@@ -124,18 +123,18 @@ public class Assortment3<T> : IAssortment3<T> where T : class, IThing3
 
     public void OrderByName()
     {
-        var showcase = _products
+        var showcase = _things
             .Where(p => p != null)
             .Select(_ => Pop());
 
         OrderBy(showcase);
     }
 
-    private void OrderBy(IEnumerable<T> products)
+    private void OrderBy(IEnumerable<T> things)
     {
-        foreach (var product in products.OrderBy(i => i?.Name))
+        foreach (var thing in things.OrderBy(i => i?.Name))
         {
-            Push(product);
+            Push(thing);
         }
     }
 
@@ -143,17 +142,17 @@ public class Assortment3<T> : IAssortment3<T> where T : class, IThing3
 
     private void SetBarcode()
     {
-        for (var index = 0; index < _products.Length; index++)
+        for (var index = 0; index < _things.Length; index++)
         {
-            SetBarcode(_products[index], index);
+            SetBarcode(_things[index], index);
         }
     }
 
-    private void SetBarcode(T product, int index)
+    private void SetBarcode(T thing, int index)
     {
-        if (product == null) return;
-        product.Barcode3 = (Barcode1)$"{Id} {index + 1} {product.Id}";
+        if (thing == null) return;
+        thing.Barcode = (Barcode1)$"{Id} {index + 1} {thing.Id}";
     }
 
-    public override string ToString() => _products.Aggregate($"\tАссортимент #{Id}:\n", (current, product) => current + (product == null ? "\t- пусто -\n" : $"{product}\n"));
+    public override string ToString() => _things.Aggregate($"\tАссортимент #{Id}:\n", (current, thing) => current + (thing == null ? "\t- пусто -\n" : $"{thing}\n"));
 }
