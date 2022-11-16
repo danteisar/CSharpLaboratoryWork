@@ -2,6 +2,7 @@
 
 namespace Showcase.Lab2;
 
+
 public class Assortment2
 {
     #region initialization

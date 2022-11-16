@@ -1,4 +1,6 @@
-﻿namespace Barcode.Lab1;
+﻿using System.Text;
+
+namespace Barcode.Lab1;
 
 public static class BarcodeGenerator
 {
@@ -16,21 +18,22 @@ public static class BarcodeGenerator
         if (tmp.Length % 2 > 0)
             tmp += "0";
 
-        var result = tmp.SplitText(2)
-            .Aggregate(string.Empty, (current, pair) => current + GetBar(pair));
+        var result = new StringBuilder();
+        foreach (var s1 in tmp.SplitText(2)) 
+            result.Append(GetBar(s1));
 
         paddings = result.Length;
         var empty = "\n".PadLeft(paddings + 1, Bars[0]);
 
-        var s = string.Empty;
+        var s = new StringBuilder();
         for (var i = 0; i < Height; i++)
         {
-            s += result + '\n';
+            s.Append(result).AppendLine();
         }
 
         paddings = empty.Length / 2 + code.Length / 2;
 
-        return empty + s + empty;
+        return s.Insert(0, empty).Append(empty).ToString();
     }
 
     /// <summary>
@@ -117,18 +120,14 @@ public static class BarcodeGenerator
     private static string Parse(this string text, Func<IList<int>, string> start, Func<string, IList<int>, string> getType, int chunkSize,
         IList<int> values, bool isFull = true)
     {
-        var tmp = start(values);
+        var tmp = new StringBuilder(start(values));
+        foreach (var s in text.SplitText(chunkSize)) tmp.Append(getType(s, values));
 
-        tmp = text
-            .SplitText(chunkSize)
-            .Aggregate(tmp, (current, s) => current + getType(s, values));
+        if (!isFull) return tmp.ToString();
 
-        if (!isFull) return tmp;
+        tmp.Append(BuildChecksum(values)).Append(Stop);
 
-        tmp += BuildChecksum(values);
-        tmp += Stop;
-
-        return tmp;
+        return tmp.ToString();
     }
 
     private static IEnumerable<string> SplitText(this string text, int chunkSize)
