@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Barcode.Lab1;
 
@@ -44,22 +46,15 @@ public static class BarcodeGenerator
         var index = 0;
         var tmp = new StringBuilder(Frame);
         var check = new List<int>();
-        var isDigitMode = Checknum(text, index, 4) || (text.Length % 2 == 0 && Checknum(text, index, text.Length));
+        var isDigitMode = text.Length > 1 && Checknum(text, index, 2);
 
         #region Patterns  
         
         AddPattern(tmp, check, isDigitMode ? StartNumbers : StartText);
         while (index < text.Length)
         {
-            if ((isDigitMode && !Checknum(text, index, 2)) ||
-                (!isDigitMode && Checknum(text, index, 4)))
-            {
-                isDigitMode = !isDigitMode;
-                AddPattern(tmp, check, isDigitMode ? SwitchToNumbers : SwitchToText);
-            }
-            AddPattern(ref index, check, isDigitMode, text, tmp);
+            AddPattern(text, tmp, check, ref isDigitMode, ref index);
         }
-
         AddPattern(tmp, check, Checksum(check));
         AddPattern(tmp, check, Stop);
 
@@ -70,28 +65,46 @@ public static class BarcodeGenerator
             tmp.Append('0');
 
         return tmp;
-    } 
+    }
+
+    #region Help
+
+    private static void AddPattern(string text, StringBuilder tmp, IList<int> check, ref bool isDigitMode, ref int index)
+    {
+        if ((isDigitMode && !Checknum(text, index, 2)) ||
+               (!isDigitMode && Checknum(text, index, 4)))
+        {
+            isDigitMode = !isDigitMode;
+            AddPattern(tmp, check, isDigitMode ? SwitchToNumbers : SwitchToText);
+        }
+        AddPattern(ref index, check, isDigitMode, text, tmp);
+    }
 
     private static void AddPattern(ref int index, IList<int> check, bool isDigitMode, string text, StringBuilder tmp)
     {
-        var data = text.Substring(index, isDigitMode ? 2 : 1);
-        var array = isDigitMode ? NumberSymbols : TextSymbols;
-        var number = Array.IndexOf(array, data);
-        AddPattern(tmp, check, number);
-        index += isDigitMode ? 2 : 1;
+        if (isDigitMode)
+        {
+            AddPattern(tmp, check, Array.IndexOf(NumberSymbols, text.Substring(index, 2)));
+            index+=2;
+        }
+        else
+        {
+            AddPattern(tmp, check, Array.IndexOf(TextSymbols, text.Substring(index, 1)));
+            index++;
+        }
     }
-    #region Help
+
+    private static void AddPattern(StringBuilder tmp, IList<int> check, int number)
+    {
+        tmp.Append(Patterns[number]);
+        check.Add(number);
+    }
 
     private static bool Checknum(string text, int skip, int take)
-    { 
-        return !text.Skip(skip).Take(take).Any(x=>!char.IsDigit(x));
-    }
-
-    private static IEnumerable<string> SplitText(this string text, int chunkSize)
     {
-        return Enumerable.Range(0, text.Length / chunkSize)
-            .Select(i => text.Substring(i * chunkSize, chunkSize));
-    }
+        var chars = text.Skip(skip).Take(take);
+        return chars.Count() == take && chars.All(x=>char.IsDigit(x));
+    }    
 
     private static int Checksum(IList<int> check)
     {
@@ -105,19 +118,20 @@ public static class BarcodeGenerator
         sum %= 103;
 
         return sum;
-    }
-
-    private static void AddPattern(StringBuilder tmp, IList<int> check, int number)
-    {
-        tmp.Append(Patterns[number]);
-        check.Add(number);
-    }
+    }    
 
     private static char GetBar(string code) => Bars[Convert.ToInt32(code, 2)];
+
+    private static IEnumerable<string> SplitText(this string text, int chunkSize)
+    {
+        return Enumerable.Range(0, text.Length / chunkSize)
+            .Select(i => text.Substring(i * chunkSize, chunkSize));
+    }
 
     /*
 
     ████████████████████████████████████████████████████████████
+    ██ ▌█▐█▌█▌▐▐█  █▐▌▌█▐ ██  ▌ ▌▌▌█  █ █▐▐█▌▌▐▌██▐ ▐  ▌▐█ ▐▐ ██
     ██ ▌█▐█▌█▌▐▐█  █▐▌▌█▐ ██  ▌ ▌▌▌█  █ █▐▐█▌▌▐▌██▐ ▐  ▌▐█ ▐▐ ██
     ██ ▌█▐█▌█▌▐▐█  █▐▌▌█▐ ██  ▌ ▌▌▌█  █ █▐▐█▌▌▐▌██▐ ▐  ▌▐█ ▐▐ ██
     ██ ▌█▐█▌█▌▐▐█  █▐▌▌█▐ ██  ▌ ▌▌▌█  █ █▐▐█▌▌▐▌██▐ ▐  ▌▐█ ▐▐ ██
@@ -128,7 +142,7 @@ public static class BarcodeGenerator
     /// <summary>   
     ///  Высота штрихкода (в строках)
     /// </summary>
-    private const int Height = 10;
+    private const int Height = 4;
 
     /// <summary>
     /// Для получения рамки штрихкода по краям
