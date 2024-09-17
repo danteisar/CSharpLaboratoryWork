@@ -211,7 +211,7 @@ public static class BarcodeGenerator
     /// <summary>
     ///  Высота штрихкода (в строках)
     /// </summary>
-    private const int Height = 5;
+    private const int Height = 4;
 
     /// <summary>
     ///    Допустимые варианты штрихов

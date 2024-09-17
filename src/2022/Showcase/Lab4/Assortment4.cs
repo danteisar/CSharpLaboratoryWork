@@ -50,7 +50,9 @@ public class Assortment4<T> : IAssortment4<T> where T : class, IThing4
             if (index > _things.Length - 1 || index < 0) return null;
             var thing = _things[index];
             _things[index] = null;
-           
+
+            if (thing is null) return thing;
+
             _idChanged -= thing.SetBarcode;
             thing.ThingIdChanged -= ThingOnIdChanged;
             
@@ -62,8 +64,11 @@ public class Assortment4<T> : IAssortment4<T> where T : class, IThing4
             if (_things[index] != null) return;
             _things[index] = value;
             
-            _idChanged += value.SetBarcode;
-            value.ThingIdChanged += ThingOnIdChanged;
+            if (value is not null)
+            {
+                _idChanged += value.SetBarcode;
+                value.ThingIdChanged += ThingOnIdChanged;
+            }
             
             value.SetBarcode(Id, index);
         }
