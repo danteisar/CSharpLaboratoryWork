@@ -1,9 +1,9 @@
-﻿namespace Store;
+﻿using static Store.Constants;
+
+namespace Store;
 
 internal class Customer
 {
-    public const ConsoleColor COLOR = ConsoleColor.Cyan;
-
     public int X { get; set; }
 
     public int Y { get; set; }
@@ -30,10 +30,11 @@ internal class Customer
         Item.Store = null;
     }
 
-    public void Write(char c = Constants.OPERATOR)
+    public void Write(char c = OPERATOR)
     {
-        Write(c != Constants.EMPTY ? c : Constants.OPERATOR, COLOR);
+        Write(c != EMPTY ? c : OPERATOR, COLOR);
     }
+
     public void Write(char c, ConsoleColor color)
     {
         Console.ForegroundColor = color;

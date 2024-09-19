@@ -2,6 +2,28 @@
 
 internal class Constants
 {
+#if !DEBUG
+    public const ConsoleColor COLOR = ConsoleColor.Green;
+    public const ConsoleColor ACTIVE_COLOR = ConsoleColor.Green;
+    public const ConsoleColor HELP_COLOR = ConsoleColor.Red;
+    public const ConsoleColor BORDER_COLOR = ConsoleColor.White;
+    public const ConsoleColor BACKGROUND_COLOR = ConsoleColor.Black;
+    public const ConsoleColor FOREGROUND_COLOR = ConsoleColor.White;
+    public const ConsoleColor STORE1 = ConsoleColor.Magenta;
+    public const ConsoleColor STORE2 = ConsoleColor.Red;
+    public const ConsoleColor STORE3 = ConsoleColor.White;
+#else
+    public const ConsoleColor COLOR = ConsoleColor.DarkGreen;
+    public const ConsoleColor ACTIVE_COLOR = ConsoleColor.DarkGreen;
+    public const ConsoleColor HELP_COLOR = ConsoleColor.DarkRed;
+    public const ConsoleColor BORDER_COLOR = ConsoleColor.Black;
+    public const ConsoleColor BACKGROUND_COLOR = ConsoleColor.White;
+    public const ConsoleColor FOREGROUND_COLOR = ConsoleColor.Black;
+    public const ConsoleColor STORE1 = ConsoleColor.Magenta;
+    public const ConsoleColor STORE2 = ConsoleColor.Red;
+    public const ConsoleColor STORE3 = ConsoleColor.Black;
+#endif
+
     public const char OPERATOR = '*';
     public const int HEIGHT = 30;
     public const int FIELD_HEIGHT = 10;
@@ -23,7 +45,6 @@ internal class Constants
     public const char TV = '╤';
     public const char IV = '│';
     public const char LV = '╧';
-
 
     public const char A2 = '┤';
     public const char A3 = '┐';

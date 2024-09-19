@@ -13,43 +13,37 @@ public class Terminal
 
     public Terminal()
     {
-        Console.WindowHeight = HEIGHT + 1;       
-
-        Console.CursorVisible = false;        
-        Console.BackgroundColor = ConsoleColor.Black;
-        Console.ForegroundColor = ConsoleColor.White;
-
-        Console.Clear();
-
-        Barcode1.Type = BarcodeType.Full;
-        Barcode3.Type = BarcodeType.Full;
-
         _width = Console.WindowWidth - 1;
         _field = new Item[_width + 1, FIELD_HEIGHT + 1];
         _customer = new Customer();
-        
-        _rightSideInfoPos = _width * 3 / 4;
-        _storeIdPos = (_rightSideInfoPos + 2, FIELD_HEIGHT + 4);
-        _storeNamePos = (_rightSideInfoPos + 2, FIELD_HEIGHT + 7);
-        _selectedIdPos = (5, HEIGHT - 1);
-        _selectedNamePos = (7 + _rightSideInfoPos / 2, HEIGHT - 1);
+
+        _rightSideInfoPos = _width * 3 / 4 - 6;
+        _storeIdPos = (_rightSideInfoPos + 2 + 4, FIELD_HEIGHT + 3);
+        _storeNamePos = (_rightSideInfoPos + 2 + 6, FIELD_HEIGHT + 4);
+        _storeCodePos = (_rightSideInfoPos + 2 + 6, FIELD_HEIGHT + 5);
+        _selectedIdPos = (6, HEIGHT - 1);
+        _selectedNamePos = (8 + _rightSideInfoPos / 2, HEIGHT - 1);
+
+        _opeartions = new();
 
         CanRun = true;
 
         Init();
     }
 
-    private int _width;
+    private readonly int _width;
     private bool _isFull = true;
     private bool _isFreeMoving = false;
 
     private readonly Item[,] _field;
-    private readonly Customer _customer;   
+    private readonly List<Item> _opeartions;
+    private readonly Customer _customer;
     private readonly int _rightSideInfoPos;
-    private readonly  (int x, int y) _storeIdPos;
-    private readonly  (int x, int y) _selectedIdPos;
-    private readonly  (int x, int y) _storeNamePos;
-    private readonly  (int x, int y) _selectedNamePos;
+    private readonly (int x, int y) _storeIdPos;
+    private readonly (int x, int y) _selectedIdPos;
+    private readonly (int x, int y) _storeNamePos;
+    private readonly (int x, int y) _storeCodePos;
+    private readonly (int x, int y) _selectedNamePos;
 
     public bool CanRun { get; private set; }
 
@@ -57,75 +51,75 @@ public class Terminal
 
     #region Run
 
-    private bool _canMoveX(int step) => !(_customer.X + step < 1 || _customer.X + step >= _width - 1);
-    
-    private bool _canMoveY(int step) => !(_customer.Y + step < 1 || _customer.Y + step >= FIELD_HEIGHT);
+    private bool CanMoveX(int step) => !(_customer.X + step < 1 || _customer.X + step >= _width - 1);
+
+    private bool CanMoveY(int step) => !(_customer.Y + step < 1 || _customer.Y + step >= FIELD_HEIGHT);
 
     private void Search(bool byX, int step)
-    {       
+    {
         if (_isFreeMoving)
         {
-            if (byX && _canMoveX(step)) _customer.X += step;
-            if (!byX && _canMoveY(step)) _customer.Y += step;
+            if (byX && CanMoveX(step)) _customer.X += step;
+            if (!byX && CanMoveY(step)) _customer.Y += step;
             return;
         }
-        
+
         IThing4 p = Item?.Product;
-        IAssortment4<IThing4> s = Item?.Store;        
+        IAssortment4<IThing4> s = Item?.Store;
         int index = GetPosition(s);
 
         if (byX)
         {
             if (s is null)
-            {
-                while (_canMoveX(step) && GetPosition(Item?.Store) == -1) 
-                {                
+                while (CanMoveX(step) && GetPosition(Item?.Store) == -1)
+                {
                     _customer.X += step;
-                }                 
+                }
+
+            if (Item?.Store is { })
+                _customer.Y = GetStorePosition(Item?.Store).Value.y + 1;
+
+            if (s is { } && index > -1)
+            {
+                while (CanMoveX(step) && GetPosition(Item?.Store) == index)
+                {
+                    _customer.X += step;
+                }
+                if (step < 0) _customer.X += step;
             }
 
-            if (s is {} && index>-1)
-            {
-                _customer.Y = GetStorePosition(s).Value.y + 1;
-                while (_canMoveX(step) && GetPosition(Item?.Store) == index) 
-                {                
-                    _customer.X += step;                    
-                }
-                if (step < 0) _customer.X += step;   
-            }  
+            if (Item is { } && Item.Char == IV)
+                _customer.X--;
 
-            if (Item?.Product is null && GetPosition(Item?.Store) == -1 && _canMoveY(step))
+            if (Item?.Product is null && GetPosition(Item?.Store) == -1 && CanMoveY(step))
             {
                 _customer.Y += step;
                 _customer.X = step > 0 ? 1 : _width - 1;
                 Search(byX, step);
             }
-        }    
+        }
         else
         {
-            while (_canMoveY(step) && Item?.Store == s) 
-            {                
+            while (CanMoveY(step) && Item?.Store == s)
                 _customer.Y += step;
-            }  
 
-            if (Item?.Store is {} && GetPosition(Item?.Store) == -1)
-            {
-                Search(!byX, step); 
-            } 
+            if (Item?.Store is { } && GetPosition(Item?.Store) == -1)
+                Search(!byX, step);
 
-            if (GetPosition(Item?.Store) != -1) 
-            {
+            if (GetPosition(Item?.Store) != -1)
                 _customer.Y = GetStorePosition(Item?.Store).Value.y + 1;
-            }
-         
-            if (Item?.Store is null && _canMoveX(step))
+
+            if (Item is { } && Item.Char == IV)
+                _customer.X--;
+
+            if (Item?.Store is null && CanMoveX(step))
             {
                 _customer.X += step;
                 _customer.Y = step > 0 ? FIELD_HEIGHT - 1 : 1;
                 Search(byX, step);
             }
         }
-       
+
     }
 
     public void Run()
@@ -139,58 +133,57 @@ public class Terminal
         {
             case ConsoleKey.A:
             case ConsoleKey.LeftArrow:
-                Search(true, -1);
+                VisualizeOpeartion(Operations.MoveA, () => Search(true, -1));
                 break;
             case ConsoleKey.W:
             case ConsoleKey.UpArrow:
-                Search(false, -1);
+                VisualizeOpeartion(Operations.MoveW, () => Search(false, -1));
                 break;
             case ConsoleKey.D:
             case ConsoleKey.RightArrow:
-                Search(true, 1);
+                VisualizeOpeartion(Operations.MoveD, () => Search(true, 1));
                 break;
             case ConsoleKey.S:
             case ConsoleKey.DownArrow:
-                Search(false, 1);
+                VisualizeOpeartion(Operations.MoveS, ()=> Search(false, 1));
                 break;
             case ConsoleKey.Spacebar:
-                Check();
+                VisualizeOpeartion(Operations.Space, Check);
                 canRestore = false;
                 break;
             case ConsoleKey.R:
-                Clear();
+                VisualizeOpeartion(Operations.Remove, Remove);
                 canRestore = false;
                 break;
             case ConsoleKey.E:
-                Sort();
+                VisualizeOpeartion(Operations.Sort, Sort);
                 canRestore = false;
                 break;
             case ConsoleKey.N:
-                Add();
+                VisualizeOpeartion(Operations.New, Add);
                 canRestore = false;
                 break;
             case ConsoleKey.C:
-                ClearAtPos();
+                VisualizeOpeartion(Operations.Clear, Clear);
                 canRestore = false;
                 break;
             case ConsoleKey.D1:
                 _isFreeMoving = !_isFreeMoving;
+                VisualizeOpeartion(Operations.MoveMode1);
                 canRestore = false;
                 break;
             case ConsoleKey.D2:
-                _isFull = !_isFull;                
+                _isFull = !_isFull;
+                VisualizeOpeartion(Operations.ShowMode2);
                 canRestore = false;
                 break;
             case ConsoleKey.Z:
-                Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.Clear();
+                if (key.Modifiers == ConsoleModifiers.Shift)
+                    _includeLoading = true;
                 Init();
                 return;
             case ConsoleKey.Q:
-                CanRun = false;
-                Console.BackgroundColor = ConsoleColor.Black;
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.Clear();
+                CanRun = false;                
                 return;
         }
 
@@ -205,7 +198,7 @@ public class Terminal
 
         WriteProductInfo(_isFull);
     }
-    
+
     #endregion
 
     #region TAKE & PUT
@@ -242,7 +235,7 @@ public class Terminal
             for (int i = 0; i < Item.Store.Size; i++)
             {
                 Item.Store.Pop();
-            }            
+            }
         });
     }
 
@@ -255,11 +248,10 @@ public class Terminal
     private void Add()
     {
         if (Item is null) return;
-        if (Item.Product is { }) return;        
+        if (Item.Product is { }) return;
         try
         {
             ClearProductInfo();
-
             Console.CursorVisible = true;
             Console.SetCursorPosition(_selectedIdPos.x, _selectedIdPos.y);
             var tmp = Console.ReadLine();
@@ -269,41 +261,39 @@ public class Terminal
             string name = Console.ReadLine();
 
             int i = 0;
-            Console.SetCursorPosition(3, FIELD_HEIGHT + 3 + i++);
-            Console.Write("AUTHOR: ");
+            AnimateText(3, FIELD_HEIGHT + 3 + i++, ["AUTHOR: "], 50);
             string author = Console.ReadLine();
-            Console.SetCursorPosition(3, FIELD_HEIGHT + 3 + i++);
-            Console.Write("YEAR: ");
+
+            AnimateText(3, FIELD_HEIGHT + 3 + i++, ["YEAR: "], 50);            
             int year = Convert.ToInt32(Console.ReadLine());
-            Console.SetCursorPosition(3, FIELD_HEIGHT + 3 + i++);
-            Console.Write("PRICE: ");
+
+            AnimateText(3, FIELD_HEIGHT + 3 + i++, ["PRICE: "], 50);
             decimal price = Convert.ToDecimal(Console.ReadLine());
 
             var index = GetPosition(Item.Store);
             Operation(() => Item.Store[index] = new Book4(id, name, author, year, price));
-            
+
         }
         catch
         {
             ClearProductInfo();
-            Console.SetCursorPosition(3, FIELD_HEIGHT + 3);
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("ERROR");
+            AnimateText(3, FIELD_HEIGHT + 3, ["ERROR"], 50);
+            Thread.Sleep(333);
         }
         Console.CursorVisible = false;
     }
 
-    private void ClearAtPos()
+    private void Remove()
     {
         if (Item?.Product is null) return;
-        var index = GetPosition(Item.Store);
-        Operation(()=>Item.Store.Pop(index));
+        Operation(() => Item.Store.Pop(GetPosition(Item.Store)));
     }
 
     private void RewriteStore(Item e)
     {
-        var pos = HideStore(e.Store);
-        ShowStore(e.Store, pos.x, pos.y, e.Color);
+        var (x, y) = HideStore(e.Store);
+        ShowStore(e.Store, x, y, e.Color);
     }
 
     private void TryTake()
@@ -311,7 +301,7 @@ public class Terminal
         var e = Item;
         if (e?.Product is null) return;
 
-        _customer.StoreProduct(e);  
+        _customer.StoreProduct(e);
         int index = GetPosition(e.Store);
         e.Store.Pop(index);
 
@@ -392,9 +382,9 @@ public class Terminal
             for (int i = 0; i < HEIGHT - FIELD_HEIGHT - 6; i++)
             {
                 WriteString(
-                    3 + _width * 3 / 4 * pos,
+                    3 + _rightSideInfoPos * pos,
                     FIELD_HEIGHT + 3 + i,
-                    string.Empty.PadRight(_width * 3 / 4 - 4, ' ')
+                    string.Empty.PadRight(_rightSideInfoPos - 4, ' ')
                     );
             }
             var empty = string.Empty.PadRight(_rightSideInfoPos / 2 - 2 - _selectedIdPos.x, ' ');
@@ -406,6 +396,7 @@ public class Terminal
         {
             WriteString(_storeIdPos.x, _storeIdPos.y, string.Empty.PadRight(_width - _storeIdPos.x - 2, ' '));
             WriteString(_storeNamePos.x, _storeNamePos.y, string.Empty.PadRight(_width - _storeNamePos.x - 2, ' '));
+            WriteString(_storeCodePos.x, _storeCodePos.y, string.Empty.PadRight(_width - _storeCodePos.x - 2, ' '));
         }
     }
 
@@ -421,10 +412,10 @@ public class Terminal
             // Product ID
             var empty = string.Empty.PadRight(_rightSideInfoPos / 2 - 2 - _selectedIdPos.x, ' ');
             WriteString(_selectedIdPos.x, _selectedIdPos.y, p?.Product?.Id.ToString() ?? empty);
-            
+
             // Product Name
             empty = string.Empty.PadRight(_rightSideInfoPos - 2 - _selectedNamePos.x, ' ');
-            WriteString(_selectedNamePos.x, _selectedNamePos.y, p?.Product?.Name.ToString() ?? empty);            
+            WriteString(_selectedNamePos.x, _selectedNamePos.y, p?.Product?.Name.ToString() ?? empty);
 
             if (p?.Product is null) return;
 
@@ -441,9 +432,12 @@ public class Terminal
         {
             var empty = string.Empty.PadRight(_width - _storeIdPos.x - 2, ' ');
             WriteString(_storeIdPos.x, _storeIdPos.y, p?.Product?.Id.ToString() ?? empty);
-           
+
             empty = string.Empty.PadRight(_width - _storeNamePos.x - 2, ' ');
             WriteString(_storeNamePos.x, _storeNamePos.y, p?.Product?.Name.ToString() ?? empty);
+
+            empty = string.Empty.PadRight(_width - _storeCodePos.x - 2, ' ');
+            WriteString(_storeCodePos.x, _storeCodePos.y, p?.Product?.Barcode.Text ?? empty);
         }
     }
 
@@ -497,7 +491,7 @@ public class Terminal
 
     private void ShowTerminal()
     {
-        Console.ForegroundColor = ConsoleColor.Cyan;             
+        Console.ForegroundColor = BORDER_COLOR;
 
         // Horizontal
         for (int i = 1; i < _width; i++)
@@ -506,15 +500,15 @@ public class Terminal
             WriteChar(i, FIELD_HEIGHT, HORIZONTAL_BORDER);
             WriteChar(i, HEIGHT, HORIZONTAL_BORDER);
         }
-        for (int i = 1; i < _width * 3 / 4; i++)
+        for (int i = 1; i < _rightSideInfoPos; i++)
         {
             WriteChar(i, HEIGHT - 2, HORIZONTAL_BORDER);
         }
 
         for (int i = _rightSideInfoPos; i < _width; i++)
         {
-            WriteChar(i, HEIGHT - 12, HORIZONTAL_BORDER);
-        }        
+            WriteChar(i, HEIGHT - 13, HORIZONTAL_BORDER);
+        }
 
         // Vertical
         for (int i = 1; i < HEIGHT; i++)
@@ -525,23 +519,23 @@ public class Terminal
 
         for (int i = FIELD_HEIGHT; i < HEIGHT; i++)
         {
-            WriteChar(_width * 3 / 4, i, VERTICAL_BORDER);
+            WriteChar(_rightSideInfoPos, i, VERTICAL_BORDER);
         }
         // corners
-        WriteChar(_width * 3 / 4, FIELD_HEIGHT, CROSS_TOP_BORDER);
-        WriteChar(_width * 3 / 4, HEIGHT - 2, CROSS_RIGHT_BORDER);
-        WriteChar(_width * 3 / 4, HEIGHT, CROSS_BOTTOM_BORDER);
+        WriteChar(_rightSideInfoPos, FIELD_HEIGHT, CROSS_TOP_BORDER);
+        WriteChar(_rightSideInfoPos, HEIGHT - 2, CROSS_RIGHT_BORDER);
+        WriteChar(_rightSideInfoPos, HEIGHT, CROSS_BOTTOM_BORDER);
 
         WriteChar(0, 0, TOP_LEFT_BORDER);
         WriteChar(_width, 0, TOP_RIGHT_BORDER);
         WriteChar(0, HEIGHT, BOTTOM_LEFT_BORDER);
         WriteChar(_width, HEIGHT, BOTTOM_RIGHT_BORDER);
-        WriteChar(_width, FIELD_HEIGHT, CROSS_RIGHT_BORDER);        
+        WriteChar(_width, FIELD_HEIGHT, CROSS_RIGHT_BORDER);
         WriteChar(0, FIELD_HEIGHT, CROSS_LEFT_BORDER);
         WriteChar(0, HEIGHT - 2, CROSS_LEFT_BORDER);
 
-        WriteChar(_rightSideInfoPos, HEIGHT - 12, CROSS_LEFT_BORDER);
-        WriteChar(_width, HEIGHT - 12, CROSS_RIGHT_BORDER);
+        WriteChar(_rightSideInfoPos, HEIGHT - 13, CROSS_LEFT_BORDER);
+        WriteChar(_width, HEIGHT - 13, CROSS_RIGHT_BORDER);
 
         Console.SetCursorPosition(2, HEIGHT - 1);
         Console.Write("ID:");
@@ -550,36 +544,133 @@ public class Terminal
 
         WriteChar(_rightSideInfoPos / 2, HEIGHT - 2, TV);
         WriteChar(_rightSideInfoPos / 2, HEIGHT - 1, IV);
-        WriteChar(_rightSideInfoPos / 2, HEIGHT - 0, LV);        
+        WriteChar(_rightSideInfoPos / 2, HEIGHT - 0, LV);
 
         Console.SetCursorPosition(2, FIELD_HEIGHT + 1);
-        Console.Write("POSITION INFORMATION");
+        Console.Write("─ POSITION INFORMATION ─");
         Console.SetCursorPosition(2 + _rightSideInfoPos, FIELD_HEIGHT + 1);
-        Console.Write("STORED INFORMATION");
+        Console.Write("─ STORED INFORMATION ─");
         Console.SetCursorPosition(2 + _rightSideInfoPos, FIELD_HEIGHT + 3);
         Console.Write("ID:");
-        Console.SetCursorPosition(2 + _rightSideInfoPos, FIELD_HEIGHT + 6);
+        Console.SetCursorPosition(2 + _rightSideInfoPos, FIELD_HEIGHT + 4);
         Console.Write("NAME:");
+        Console.SetCursorPosition(2 + _rightSideInfoPos, FIELD_HEIGHT + 5);
+        Console.Write("CODE:");
 
-        int pos = 11;
-        Console.ForegroundColor = ConsoleColor.Black;
-        ShowHelp(pos--, "CONTROLS:"); pos--;
-        ShowHelp(pos--, "WASD - move *"); 
-        ShowHelp(pos--, "1/2 - move/show modes"); 
-        ShowHelp(pos--, "N - new Book"); 
-        ShowHelp(pos--, "Space - take/put"); 
-        ShowHelp(pos--, "C - remove"); 
-        ShowHelp(pos--, "R - clear"); 
-        ShowHelp(pos--, "Z - restart"); 
-        ShowHelp(pos--, "Q - quit");        
+        int pos = 12;
+        Console.ForegroundColor = HELP_COLOR;
+        //                         11111111112222222222333
+        //               012345678901234567890123456789012
+        ShowHelp(pos--, " ─ CONTROLS ─          Z - restart");
+        ShowHelp(pos--, "                         Q - quit");
+        ShowHelp(pos--, "                    1         2  ");//-1
+        ShowHelp(pos--, "     ╔───╗        ╔─┬─╗     ╔─┬─╗");//0
+        ShowHelp(pos--, "     │ W │    MOVE│1│2│ SHOW│1│2│");//1
+        ShowHelp(pos--, "     ╚───╝        ╚─┴─╝     ╚─┴─╝");//2
+        ShowHelp(pos--, "╔───╗╔───╗╔───╗     ╔─╗       ╔─╗");//3
+        ShowHelp(pos--, "│ A ││SPC││ D │ SORT│E│  CLEAR│C│");//4
+        ShowHelp(pos--, "╚───╝╚───╝╚───╝     ╚─╝       ╚─╝");//5
+        ShowHelp(pos--, "     ╔───╗          ╔─╗       ╔─╗");//6
+        ShowHelp(pos--, "     │ S │    REMOVE│R│    NEW│N│");//7
+        ShowHelp(pos--, "     ╚───╝          ╚─╝       ╚─╝");//8
+
+        SaveText(" W ", 5, 0, Operations.MoveW);
+        SaveText(" A ", 0, 3, Operations.MoveA);
+        SaveText(" S ", 5, 6, Operations.MoveS);
+        SaveText(" D ", 10, 3, Operations.MoveD);
+        SaveText("SPC", 5, 3, Operations.Space);
+        SaveText("E", 20, 3, Operations.Sort);
+        SaveText("R", 20, 6, Operations.Remove);
+        SaveText("C", 30, 3, Operations.Clear);
+        SaveText("N", 30, 6, Operations.New);
+
+        Save('1', Operations.MoveMode1, 2 + _rightSideInfoPos + 19, HEIGHT - 9 + 1);
+        Save('2', Operations.MoveMode2, 2 + _rightSideInfoPos + 21, HEIGHT - 9 + 1);
+        Save('1', Operations.ShowMode1, 2 + _rightSideInfoPos + 29, HEIGHT - 9 + 1);
+        Save('2', Operations.ShowMode2, 2 + _rightSideInfoPos + 31, HEIGHT - 9 + 1);
     }
+
+    private void SaveText(string t, int offsetX, int offsetY, Operations op)
+    {
+        Save('╔', op, 2 + _rightSideInfoPos + offsetX, HEIGHT - 9 + offsetY);
+        Save('│', op, 2 + _rightSideInfoPos + offsetX, HEIGHT - 8 + offsetY);
+        Save('╚', op, 2 + _rightSideInfoPos + offsetX, HEIGHT - 7 + offsetY);
+
+        Save('╗', op, 2 + _rightSideInfoPos + offsetX + t.Length + 1, HEIGHT - 9 + offsetY);
+        Save('│', op, 2 + _rightSideInfoPos + offsetX + t.Length + 1, HEIGHT - 8 + offsetY);
+        Save('╝', op, 2 + _rightSideInfoPos + offsetX + t.Length + 1, HEIGHT - 7 + offsetY);
+
+        for (int i = 0; i < t.Length; i++)
+        {
+            Save('─', op, 2 + _rightSideInfoPos + offsetX + i + 1, HEIGHT - 9 + offsetY);
+            Save(t[i], op, 2 + _rightSideInfoPos + offsetX + i + 1, HEIGHT - 8 + offsetY);
+            Save('─', op, 2 + _rightSideInfoPos + offsetX + i + 1, HEIGHT - 7 + offsetY);
+        }
+    }
+
+    private void VisualizeOpeartion(Operations o, Action action = null)
+    {
+        if (o == Operations.MoveMode1)
+        {
+            if (_isFreeMoving)
+            {
+                ShowOperation(Operations.MoveMode2, ACTIVE_COLOR);
+                ShowOperation(Operations.MoveMode1, HELP_COLOR);
+            }
+            else
+            {
+                ShowOperation(Operations.MoveMode1, ACTIVE_COLOR);
+                ShowOperation(Operations.MoveMode2, HELP_COLOR);
+            }
+            return;
+        }
+
+        if (o == Operations.ShowMode2)
+        {
+            if (_isFull)
+            {
+                ShowOperation(Operations.ShowMode1, ACTIVE_COLOR);
+                ShowOperation(Operations.ShowMode2, HELP_COLOR);
+            }
+            else
+            {
+                ShowOperation(Operations.ShowMode2, ACTIVE_COLOR);
+                ShowOperation(Operations.ShowMode1, HELP_COLOR);
+            }
+            return;
+        }
+
+        ShowOperation(o, ACTIVE_COLOR);
+
+        action?.Invoke();
+
+        Thread.Sleep(100);
+
+        ShowOperation(o, HELP_COLOR);
+    }
+
+    private void ShowOperation(Operations o, ConsoleColor c)
+    {
+        Console.ForegroundColor = c;
+        foreach (var item in _opeartions.Where(x => x.Operation == o))
+        {
+            Console.SetCursorPosition(item.X, item.Y);
+            Console.Write(item.Char);
+        }
+    }
+
+    private void Save(char c, Operations o, int x, int y)
+    {
+        _opeartions.Add((c, o, x, y));
+    }
+
     private void ShowHelp(int pos, string text)
     {
         Console.SetCursorPosition(2 + _rightSideInfoPos, HEIGHT - pos);
         Console.Write(text);
     }
 
-    private IThing4 Check(IAssortment4<IThing4> store, int index)
+    private static IThing4 Check(IAssortment4<IThing4> store, int index)
     {
         var tmp = store[index];
         store[index] = tmp;
@@ -715,10 +806,149 @@ public class Terminal
         WriteChar(pos.x, pos.y, EMPTY);
     }
 
-    private void Init()
+    private static void ClearConsole()
     {
-        ShowTerminal();
+        Console.WindowHeight = HEIGHT + 1;
 
+        Console.CursorVisible = false;
+        Console.BackgroundColor = BACKGROUND_COLOR;
+        Console.ForegroundColor = FOREGROUND_COLOR;
+
+        Console.Clear();
+
+        Barcode1.Type = BarcodeType.Full;
+        Barcode3.Type = BarcodeType.Full;       
+    }
+
+    private static void Test4<T>(IAssortment4<T> a, IEnumerable<T> list, T test) where T : class, IThing4
+    {
+        Console.WriteLine("".PadLeft(80, '='));
+        foreach (var product in list)
+        {
+            a.Push(product);
+        }
+        a.OrderByName();
+
+        a.Id++;
+        test.Id++;
+
+        Console.WriteLine(a);
+    }
+
+    private static void ShowLoading()
+    {
+        NormalClear();
+        var rnd = new Random();
+        Console.CursorVisible = false;
+        var y = 0;
+        foreach (var item in MsDos())
+        {
+            AnimateText(0, y++, [item], 0);
+            Thread.Sleep(rnd.Next(10, 100));
+        }
+        y--;
+        var x = MsDos().Last().Length;
+        for (int i = 0; i < 3; i++)
+        {
+            AnimateText(4, y, [" "], 500);
+            AnimateText(4, y, ["_"], 500);
+        }
+        AnimateText(4, y, ["TERMINAL.EXE"], 50);
+        Thread.Sleep(500);
+        ClearConsole();
+        Barcode1 logo = "TERMINAL v.1.0";
+        var text = logo.ToString().Split('\n');
+        var posX = (Console.WindowWidth - text[0].Length + 2) / 2;
+        var posY = (Console.WindowHeight - 8) / 2;
+        
+        ShowRectangle(posX-1, posY-1, text[0].Length + 4, 11);
+        AnimateText(posX + 1, posY + 1, text, 5);
+        Thread.Sleep(1000);        
+        _includeLoading = false;
+    }
+
+    private static void ShowRectangle(int offsetX, int offsetY, int width, int height)
+    {
+        width--;
+        height--;
+
+        for (int i = 1; i < width; i++)
+        {
+            WriteChar(offsetX + i, offsetY, A9);
+            WriteChar(offsetX + i, offsetY + height, A9);
+        }
+        for (int i = 1; i < height; i++)
+        {
+            WriteChar(offsetX, offsetY + i, IV);
+            WriteChar(offsetX + width, offsetY + i, IV);
+        }
+        WriteChar(offsetX, offsetY, A11);
+        WriteChar(offsetX, offsetY + height, A4);
+        WriteChar(offsetX + width, offsetY, A3);
+        WriteChar(offsetX + width, offsetY + height, A10);
+    }
+
+    private static void AnimateText(int x, int y, string[] text, int delay)
+    {        
+        for (int i = 0; i < text[0].Length; i++)
+        {
+            for (int j = 0; j < text.Length; j++)
+            {
+                if (i < text[j].Length)
+                {
+                    Console.SetCursorPosition(x + i, y + j);
+                    Console.Write(text[j][i]);
+                }
+            }
+            if (delay > 0) Thread.Sleep(delay);
+        }
+    }
+
+    private static void NormalClear()
+    {
+        Console.ResetColor();
+        Console.Clear();
+        Console.CursorVisible = true;
+    }
+
+    private static bool _isDemo = true;
+    private static bool _includeLoading = true;
+    private static bool _include5th = false;
+
+    private static string[] MsDos()
+    {
+        return
+        [
+            "Welcome to FreeDOS",
+            "",
+            "CuteMouse v1.9.1 alpha 1 [FreeDOS]",
+            "Installed at PS/2 port",
+            @"c:\>ver",
+            "",
+            "FreeCom version 0.82 pl 3 XMS_Swap [Dec 19 2024 18:00:00]",
+            "",
+            @"C:\>dir",
+            " Volume in drive C is FREEDOS_C95",
+            " Volume Serial Number is 0E4F-19EB",
+            @" Directory of C:\",
+            "",
+            "FDOS                <DIR> 08-26-04 6:23p",
+            "AUTOEXEC BAT          435 08-26-04 6:24p",
+            "BOOTSECT BIN          512 08-26-04 6:23p",
+            "COMMAND  COM       93,963 08-26-04 6:24p",
+            "CONFIG   SYS          801 08-26-04 6:24p",
+            "FDOSBOOT BIN          512 08-26-04 6:24p",
+            "KERNEL   SYS       45,815 04-17-04 9:19p",
+            "TERMINAL EXE      224,455 09-19-24 6:00p",
+            "         7 file(s)     366,493 bytes",
+            "         1 dir(s) 1,064,517,632 bytes free",
+            "",
+            @"C:\>",
+        ];
+    }
+
+    private void Init()
+    {        
         var rnd = new Random();
         var lab4Data = new List<IThing4>
         {
@@ -738,33 +968,78 @@ public class Terminal
             new (6666, "Понимание комикса", "А. Шпигельман", 1990, 860),
             new (7777, "Ходячие мертвецы", "Р. Кирман", 2003, 2257)
         };
-                
+
         IAssortment4<IThing4> store1 = (Assortment4<IThing4>)20;
         store1[0] = lab4Data[0];
         store1[2] = lab4Data[1];
         store1[3] = lab4Data[3];
         store1[10] = lab4Data[2];
 
-        
         IAssortment4<IThing4> store2 = (Assortment4<IThing4>)20;
         store2[1] = lab4Data2[0];
         store2[3] = lab4Data2[1];
         store2[5] = lab4Data2[2];
-               
+
         IAssortment4<IThing4> store3 = (Assortment4<IThing4>)10;
-        
+
         for (int i = 0; i < 10; i++)
         {
             store3[i] = lab4Data[rnd.Next(0, 99)];
+        }        
+
+        if (_isDemo)
+        {               
+            ConsoleKeyInfo key;
+            do
+            {
+                NormalClear();
+                var text = "Вы были 19.09.2024 на лекции? (y/n)";
+                var posX = (Console.WindowWidth - text.Length + 2) / 2;
+                var posY = (Console.WindowHeight - 3) / 2;
+                ShowRectangle(posX, posY, text.Length + 2, 3);
+                AnimateText(posX+1, posY+1, [text], 5);
+                key = Console.ReadKey(true);
+            }
+            while (key.Key != ConsoleKey.Y && key.Key != ConsoleKey.N && key.Key != ConsoleKey.Spacebar);
+
+            _include5th = key.Key != ConsoleKey.Y;
+
+            if (key.Key == ConsoleKey.Spacebar)
+                _includeLoading = false;
+
+            _isDemo = false;
         }
 
-        ShowStore(store1, 2, 1, ConsoleColor.Magenta);
-        ShowStore(store2, 2, 4, ConsoleColor.Red);
-        ShowStore(store3, 2, 7, ConsoleColor.White);
+        if (!_include5th)
+        {
+            var data = lab4Data.Concat(lab4Data2.Select(x => x as IThing4));
+            
+            NormalClear();
+            Test4(store1, data, lab4Data[0]);
+            Test4(store2, lab4Data2, lab4Data2[0]);
+            
+            Console.WriteLine("Press any key to continue...");
+            Console.ReadKey(true);
+            CanRun = false;
+        }
+        else
+        {
+            if (_includeLoading) ShowLoading();
 
-        _customer.X = 1;
-        _customer.Y = 1;
-        _customer.Write();
+            _opeartions.Clear();
+            ClearConsole();
+            ShowTerminal();
+            VisualizeOpeartion(Operations.MoveMode1);
+            VisualizeOpeartion(Operations.ShowMode2);
+
+            ShowStore(store1, 2, 1, STORE1);
+            ShowStore(store2, 2, 4, STORE2);
+            ShowStore(store3, 2, 7, STORE3);
+
+            _customer.X = 1;
+            _customer.Y = 1;
+            _customer.Write();
+        }        
     }
 
     #endregion

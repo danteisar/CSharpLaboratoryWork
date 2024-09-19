@@ -17,4 +17,13 @@ internal class Item
 
     public char Char { get; set; }
 
+    public Operations Operation { get; set; }
+
+    public static implicit operator Item((char c, Operations o, int x, int y) o) => new()
+    {
+        X = o.x,
+        Y = o.y,
+        Char = o.c,
+        Operation = o.o
+    };
 }

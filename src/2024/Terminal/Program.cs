@@ -5,3 +5,6 @@ while (terminal.CanRun)
 {
     terminal.Run();
 }
+
+Console.ResetColor();
+Console.Clear();
