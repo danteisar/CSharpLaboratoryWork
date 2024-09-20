@@ -1,8 +1,8 @@
-﻿using Barcode.Lab1;
-using Barcode.Lab3;
-using Product.Lab4;
+﻿using Product.Lab4;
 using Showcase.Lab4;
+using Store.Excersises;
 using System.Text;
+using static Store.ConsoleExtensions.ConsoleWriter;
 using static Store.Constants;
 
 namespace Store;
@@ -13,6 +13,9 @@ public class Terminal
 
     public Terminal()
     {
+        if (Console.WindowWidth < 122)
+            Console.WindowWidth = 122;
+
         _width = Console.WindowWidth - 1;
         _field = new Item[_width + 1, FIELD_HEIGHT + 1];
         _customer = new Customer();
@@ -145,7 +148,7 @@ public class Terminal
                 break;
             case ConsoleKey.S:
             case ConsoleKey.DownArrow:
-                VisualizeOpeartion(Operations.MoveS, ()=> Search(false, 1));
+                VisualizeOpeartion(Operations.MoveS, () => Search(false, 1));
                 break;
             case ConsoleKey.Spacebar:
                 VisualizeOpeartion(Operations.Space, Check);
@@ -179,11 +182,11 @@ public class Terminal
                 break;
             case ConsoleKey.Z:
                 if (key.Modifiers == ConsoleModifiers.Shift)
-                    _includeLoading = true;
+                    IncludeLoading = true;
                 Init();
                 return;
             case ConsoleKey.Q:
-                CanRun = false;                
+                CanRun = false;
                 return;
         }
 
@@ -264,7 +267,7 @@ public class Terminal
             AnimateText(3, FIELD_HEIGHT + 3 + i++, ["AUTHOR: "], 50);
             string author = Console.ReadLine();
 
-            AnimateText(3, FIELD_HEIGHT + 3 + i++, ["YEAR: "], 50);            
+            AnimateText(3, FIELD_HEIGHT + 3 + i++, ["YEAR: "], 50);
             int year = Convert.ToInt32(Console.ReadLine());
 
             AnimateText(3, FIELD_HEIGHT + 3 + i++, ["PRICE: "], 50);
@@ -780,44 +783,99 @@ public class Terminal
 
     #region Help
 
-    private static void WriteChar(int posX, int posY, char c)
+    private static bool _include5th = false;
+
+    
+
+    private void Init()
     {
-        Console.SetCursorPosition(posX, posY);
-        Console.Write(c);
-        Console.CursorVisible = false;
+        if (IsDemo)
+        {
+            ConsoleKeyInfo key;
+            do
+            {
+                key = AskMessage("Вы были 19.09.2024 на лекции? (y/n)");
+            }
+            while (key.Key != ConsoleKey.Y && key.Key != ConsoleKey.N && key.Key != ConsoleKey.Spacebar);
+
+            if (key.Key == ConsoleKey.Spacebar)
+                IncludeLoading = false;
+
+            if (key.Key == ConsoleKey.Y)
+            {
+                if (AskMessage("Вы хотите посмотреть, что должен выводить терминал при сдаче лаб? (y/n)").Key != ConsoleKey.Y)
+                {
+                    CanRun = false;
+                    return;
+                }
+            }            
+
+            if (key.Key != ConsoleKey.Y)
+            {
+                AskMessage("Тогда порешаем задачи...");
+
+                _include5th = !new Excersise1().Write() 
+                    | !new Excersise2().Write() 
+                    | !new Excersise3().Write()
+                    | !new Excersise4().Write()
+                    | !new Excersise5().Write()
+                    | !new Excersise6().Write();
+
+                if (_include5th)
+                {
+                    AskMessage("Вы не прошли тест.");
+                    AskMessage("Вы можете ознакомится с демонстрацией 5й лабораторной работы.");
+                }
+                else
+                {
+                    AskMessage("Поздравляем! Вы прошли тест. У вас всего 4e лабораторных.");
+                    AskMessage("Далее можно посмотреть как работает терминал.");
+                }
+
+            }
+
+            IsDemo = false;
+        }
+
+        if (_include5th)
+        {
+            ShowLab5Demo();
+        }
+        else
+        {
+            ShowLab4Demo();
+        }
     }
 
-    private static void WriteString(int posX, int posY, string str)
+    private void ShowLab4Demo()
     {
-        Console.SetCursorPosition(posX, posY);
-        Console.Write(str);
-        Console.CursorVisible = false;
+        LoadData(out var store1, out var store2, out var _, out var lab4Data, out var lab4Data2);
+
+        NormalClear();
+        Test4(store1, lab4Data.Concat(lab4Data2.Select(x => x as IThing4)), lab4Data[0]);
+        Test4(store2, lab4Data2, lab4Data2[0]);
+
+        Console.WriteLine("Press any key to continue...");
+        Console.ReadKey(true);
+        CanRun = false;
     }
 
-    private static void RestoreChar(Item e)
+    private void ShowLab5Demo()
     {
-        if (e is null) return;
-        Console.ForegroundColor = e.Color;
-        WriteChar(e.X, e.Y, e.Char);
-    }
+        LoadData(out var store1, out var store2, out var store3, out var _, out var _);
 
-    private static void RestoreChar((int x, int y) pos)
-    {
-        WriteChar(pos.x, pos.y, EMPTY);
-    }
-
-    private static void ClearConsole()
-    {
-        Console.WindowHeight = HEIGHT + 1;
-
-        Console.CursorVisible = false;
-        Console.BackgroundColor = BACKGROUND_COLOR;
-        Console.ForegroundColor = FOREGROUND_COLOR;
-
-        Console.Clear();
-
-        Barcode1.Type = BarcodeType.Full;
-        Barcode3.Type = BarcodeType.Full;       
+        ShowLoading();
+        _opeartions.Clear();
+        ClearConsole();
+        ShowTerminal();
+        VisualizeOpeartion(Operations.MoveMode1);
+        VisualizeOpeartion(Operations.ShowMode2);
+        ShowStore(store1, 2, 1, STORE1);
+        ShowStore(store2, 2, 4, STORE2);
+        ShowStore(store3, 2, 7, STORE3);
+        _customer.X = 1;
+        _customer.Y = 1;
+        _customer.Write();
     }
 
     private static void Test4<T>(IAssortment4<T> a, IEnumerable<T> list, T test) where T : class, IThing4
@@ -827,219 +885,54 @@ public class Terminal
         {
             a.Push(product);
         }
+        Console.WriteLine("--- Сортировка по имени ---");
         a.OrderByName();
-
+        Console.WriteLine("--- Изменеие ID ---");
         a.Id++;
         test.Id++;
-
+        Console.WriteLine("--- Вывод результата ---");
         Console.WriteLine(a);
     }
 
-    private static void ShowLoading()
+    private static void LoadData(out IAssortment4<IThing4> store1, out IAssortment4<IThing4> store2, out IAssortment4<IThing4> store3, out List<IThing4> lab4Data, out List<Comic4> lab4Data2)
     {
-        NormalClear();
         var rnd = new Random();
-        Console.CursorVisible = false;
-        var y = 0;
-        foreach (var item in MsDos())
-        {
-            AnimateText(0, y++, [item], 0);
-            Thread.Sleep(rnd.Next(10, 100));
-        }
-        y--;
-        var x = MsDos().Last().Length;
-        for (int i = 0; i < 3; i++)
-        {
-            AnimateText(4, y, [" "], 500);
-            AnimateText(4, y, ["_"], 500);
-        }
-        AnimateText(4, y, ["TERMINAL.EXE"], 50);
-        Thread.Sleep(500);
-        ClearConsole();
-        Barcode1 logo = "TERMINAL v.1.0";
-        var text = logo.ToString().Split('\n');
-        var posX = (Console.WindowWidth - text[0].Length + 2) / 2;
-        var posY = (Console.WindowHeight - 8) / 2;
-        
-        ShowRectangle(posX-1, posY-1, text[0].Length + 4, 11);
-        AnimateText(posX + 1, posY + 1, text, 5);
-        Thread.Sleep(1000);        
-        _includeLoading = false;
-    }
-
-    private static void ShowRectangle(int offsetX, int offsetY, int width, int height)
-    {
-        width--;
-        height--;
-
-        for (int i = 1; i < width; i++)
-        {
-            WriteChar(offsetX + i, offsetY, A9);
-            WriteChar(offsetX + i, offsetY + height, A9);
-        }
-        for (int i = 1; i < height; i++)
-        {
-            WriteChar(offsetX, offsetY + i, IV);
-            WriteChar(offsetX + width, offsetY + i, IV);
-        }
-        WriteChar(offsetX, offsetY, A11);
-        WriteChar(offsetX, offsetY + height, A4);
-        WriteChar(offsetX + width, offsetY, A3);
-        WriteChar(offsetX + width, offsetY + height, A10);
-    }
-
-    private static void AnimateText(int x, int y, string[] text, int delay)
-    {        
-        for (int i = 0; i < text[0].Length; i++)
-        {
-            for (int j = 0; j < text.Length; j++)
-            {
-                if (i < text[j].Length)
-                {
-                    Console.SetCursorPosition(x + i, y + j);
-                    Console.Write(text[j][i]);
-                }
-            }
-            if (delay > 0) Thread.Sleep(delay);
-        }
-    }
-
-    private static void NormalClear()
-    {
-        Console.ResetColor();
-        Console.Clear();
-        Console.CursorVisible = true;
-    }
-
-    private static bool _isDemo = true;
-    private static bool _includeLoading = true;
-    private static bool _include5th = false;
-
-    private static string[] MsDos()
-    {
-        return
+        lab4Data =
         [
-            "Welcome to FreeDOS",
-            "",
-            "CuteMouse v1.9.1 alpha 1 [FreeDOS]",
-            "Installed at PS/2 port",
-            @"c:\>ver",
-            "",
-            "FreeCom version 0.82 pl 3 XMS_Swap [Dec 19 2024 18:00:00]",
-            "",
-            @"C:\>dir",
-            " Volume in drive C is FREEDOS_C95",
-            " Volume Serial Number is 0E4F-19EB",
-            @" Directory of C:\",
-            "",
-            "FDOS                <DIR> 08-26-04 6:23p",
-            "AUTOEXEC BAT          435 08-26-04 6:24p",
-            "BOOTSECT BIN          512 08-26-04 6:23p",
-            "COMMAND  COM       93,963 08-26-04 6:24p",
-            "CONFIG   SYS          801 08-26-04 6:24p",
-            "FDOSBOOT BIN          512 08-26-04 6:24p",
-            "KERNEL   SYS       45,815 04-17-04 9:19p",
-            "TERMINAL EXE      224,455 09-19-24 6:00p",
-            "         7 file(s)     366,493 bytes",
-            "         1 dir(s) 1,064,517,632 bytes free",
-            "",
-            @"C:\>",
-        ];
-    }
-
-    private void Init()
-    {        
-        var rnd = new Random();
-        var lab4Data = new List<IThing4>
-        {
             new Book4(3000, "ВОЙНА И МИРЪ III", "Л.Н. Толстой", 1867, 300000),
             new Book4(1000, "ВОЙНА И МИРЪ I", "Л.Н. Толстой", 1863, 1000000),
             new Book4(2000, "ВОЙНА И МИРЪ II", "Л.Н. Толстой", 1865, 200000),
             new Book4(4000, "ВОЙНА И МИРЪ IV", "Л.Н. Толстой", 1869, 400000)
-        };
+        ];
 
         for (int i = 4; i < 99; i++)
         {
             lab4Data.Add(new Book4(rnd.Next(1, 1000), rnd.Next(1, 100).ToString(), rnd.Next(1, 100).ToString(), rnd.Next(1860, 2024), (decimal)rnd.NextDouble() * 1000));
         }
-        var lab4Data2 = new List<Comic4>
-        {
+        lab4Data2 =
+        [
             new (5555, "Хранители", "С. Маккоауд", 2008, 2071),
             new (6666, "Понимание комикса", "А. Шпигельман", 1990, 860),
             new (7777, "Ходячие мертвецы", "Р. Кирман", 2003, 2257)
-        };
+        ];
 
-        IAssortment4<IThing4> store1 = (Assortment4<IThing4>)20;
+        store1 = (Assortment4<IThing4>)20;
         store1[0] = lab4Data[0];
         store1[2] = lab4Data[1];
         store1[3] = lab4Data[3];
         store1[10] = lab4Data[2];
 
-        IAssortment4<IThing4> store2 = (Assortment4<IThing4>)20;
+        store2 = (Assortment4<IThing4>)20;
         store2[1] = lab4Data2[0];
         store2[3] = lab4Data2[1];
         store2[5] = lab4Data2[2];
 
-        IAssortment4<IThing4> store3 = (Assortment4<IThing4>)10;
+        store3 = (Assortment4<IThing4>)10;
 
         for (int i = 0; i < 10; i++)
         {
             store3[i] = lab4Data[rnd.Next(0, 99)];
-        }        
-
-        if (_isDemo)
-        {               
-            ConsoleKeyInfo key;
-            do
-            {
-                NormalClear();
-                var text = "Вы были 19.09.2024 на лекции? (y/n)";
-                var posX = (Console.WindowWidth - text.Length + 2) / 2;
-                var posY = (Console.WindowHeight - 3) / 2;
-                ShowRectangle(posX, posY, text.Length + 2, 3);
-                AnimateText(posX+1, posY+1, [text], 5);
-                key = Console.ReadKey(true);
-            }
-            while (key.Key != ConsoleKey.Y && key.Key != ConsoleKey.N && key.Key != ConsoleKey.Spacebar);
-
-            _include5th = key.Key != ConsoleKey.Y;
-
-            if (key.Key == ConsoleKey.Spacebar)
-                _includeLoading = false;
-
-            _isDemo = false;
         }
-
-        if (!_include5th)
-        {
-            var data = lab4Data.Concat(lab4Data2.Select(x => x as IThing4));
-            
-            NormalClear();
-            Test4(store1, data, lab4Data[0]);
-            Test4(store2, lab4Data2, lab4Data2[0]);
-            
-            Console.WriteLine("Press any key to continue...");
-            Console.ReadKey(true);
-            CanRun = false;
-        }
-        else
-        {
-            if (_includeLoading) ShowLoading();
-
-            _opeartions.Clear();
-            ClearConsole();
-            ShowTerminal();
-            VisualizeOpeartion(Operations.MoveMode1);
-            VisualizeOpeartion(Operations.ShowMode2);
-
-            ShowStore(store1, 2, 1, STORE1);
-            ShowStore(store2, 2, 4, STORE2);
-            ShowStore(store3, 2, 7, STORE3);
-
-            _customer.X = 1;
-            _customer.Y = 1;
-            _customer.Write();
-        }        
     }
 
     #endregion

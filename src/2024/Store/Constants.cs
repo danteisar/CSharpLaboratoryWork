@@ -2,7 +2,7 @@
 
 internal class Constants
 {
-#if !DEBUG
+#if DEBUG
     public const ConsoleColor COLOR = ConsoleColor.Green;
     public const ConsoleColor ACTIVE_COLOR = ConsoleColor.Green;
     public const ConsoleColor HELP_COLOR = ConsoleColor.Red;
@@ -12,6 +12,11 @@ internal class Constants
     public const ConsoleColor STORE1 = ConsoleColor.Magenta;
     public const ConsoleColor STORE2 = ConsoleColor.Red;
     public const ConsoleColor STORE3 = ConsoleColor.White;
+
+    public const ConsoleColor FOREGROUND_COLOR_KEYWORD = ConsoleColor.Blue;
+    public const ConsoleColor FOREGROUND_COLOR_FUNCTION = ConsoleColor.DarkYellow;
+    public const ConsoleColor FOREGROUND_COLOR_CLASSES = ConsoleColor.Green;
+    public const ConsoleColor FOREGROUND_COLOR_SPECIAL = ConsoleColor.Magenta;
 #else
     public const ConsoleColor COLOR = ConsoleColor.DarkGreen;
     public const ConsoleColor ACTIVE_COLOR = ConsoleColor.DarkGreen;
@@ -19,9 +24,14 @@ internal class Constants
     public const ConsoleColor BORDER_COLOR = ConsoleColor.Black;
     public const ConsoleColor BACKGROUND_COLOR = ConsoleColor.White;
     public const ConsoleColor FOREGROUND_COLOR = ConsoleColor.Black;
-    public const ConsoleColor STORE1 = ConsoleColor.Magenta;
+    public const ConsoleColor STORE1 = ConsoleColor.Magenta;    
     public const ConsoleColor STORE2 = ConsoleColor.Red;
     public const ConsoleColor STORE3 = ConsoleColor.Black;
+
+    public const ConsoleColor FOREGROUND_COLOR_KEYWORD = ConsoleColor.Blue;
+    public const ConsoleColor FOREGROUND_COLOR_FUNCTION = ConsoleColor.DarkYellow;
+    public const ConsoleColor FOREGROUND_COLOR_CLASSES = ConsoleColor.Green;
+    public const ConsoleColor FOREGROUND_COLOR_SPECIAL = ConsoleColor.Magenta;
 #endif
 
     public const char OPERATOR = '*';
