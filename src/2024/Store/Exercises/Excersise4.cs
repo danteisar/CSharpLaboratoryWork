@@ -1,6 +1,6 @@
-﻿namespace Store.Excersises;
+﻿namespace Store.Exercises;
 
-internal class Excersise4 : ExcersiseBase, IExcersise
+internal class Exercise4 : ExerciseBase, IExercise
 {
     public int Number => 4;
 
@@ -20,7 +20,7 @@ internal class Excersise4 : ExcersiseBase, IExcersise
 
     public string[] Variants => [];
 
-    public override string Excersise()
+    public override string Exercise()
     {
         return "";// ,"Add";
     }

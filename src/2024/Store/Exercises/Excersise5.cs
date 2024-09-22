@@ -1,6 +1,6 @@
-﻿namespace Store.Excersises;
+﻿namespace Store.Exercises;
 
-internal class Excersise5 : ExcersiseBase, IExcersise
+internal class Exercise5 : ExerciseBase, IExercise
 {
     public int Number => 5;
 
@@ -55,7 +55,7 @@ internal class Excersise5 : ExcersiseBase, IExcersise
         } 
     }
 
-    public override string Excersise()
+    public override string Exercise()
     {
         Ints[] i = [5, 3, 2, 1, 4];
         Do(i, 0, i.Length - 1);

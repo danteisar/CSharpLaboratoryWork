@@ -1,8 +1,8 @@
 ﻿using System.Text;
 
-namespace Store.Excersises;
+namespace Store.Exercises;
 
-public class Excersise3 : ExcersiseBase, IExcersise
+internal class Exercise3 : ExerciseBase, IExercise
 {
     public int Number => 3;
 
@@ -30,7 +30,7 @@ public class Excersise3 : ExcersiseBase, IExcersise
         public HString(int iniSize) => Init(initSize);
         public StringBuilder StringBuilder => sb;
     }
-    public override string Excersise()
+    public override string Exercise()
     {        
         return new HString(256).StringBuilder.Capacity.ToString();
     }

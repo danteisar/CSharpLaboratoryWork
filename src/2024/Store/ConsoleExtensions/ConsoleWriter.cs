@@ -1,6 +1,6 @@
 ﻿using Barcode.Lab1;
 using Barcode.Lab3;
-using Store.Excersises;
+using Store.Exercises;
 using static Store.Constants;
 
 namespace Store.ConsoleExtensions;
@@ -38,7 +38,8 @@ internal static class ConsoleWriter
 
     public static void NormalClear()
     {
-        Console.ResetColor();
+        Console.BackgroundColor = BACKGROUND_COLOR;
+        Console.ForegroundColor = FOREGROUND_COLOR;
         Console.Clear();
         Console.CursorVisible = true;
     }
@@ -163,6 +164,18 @@ internal static class ConsoleWriter
         WriteChar(offsetX + width, offsetY + height, A10);
     }
 
+    public static void ShowLinesOfCode(int offsetX, int offsetY, int count)
+    {
+        if (count == 0) return;
+        var width = count.ToString().Length;
+        WriteChar(offsetX + width, offsetY - 1, A6);
+        for (int i = 0; i < count; i++)
+        {
+            WriteString(offsetX, offsetY + i, (i+1).ToString().PadRight(width, ' ') + IV);
+        }
+        WriteChar(offsetX + width, offsetY + count, A5);
+    }
+
     private static void Write(string text, int delay)
     {
         if (string.IsNullOrEmpty(text)) return;
@@ -236,27 +249,27 @@ internal static class ConsoleWriter
          "this", "while", "new", "readonly",  "base", "virtual", "override", "get", "set", "void", "class", "{", "}"];
     public static string[] functions = ["[", "]", "WriteLine", "IComparable", "CompareTo", "Do", "AddAll", "Add", "ToString"];
     public static string[] classes = ["Console", "Amplifier", "BaseStorage", "ItemsStorage", "IEnumerable", "List", "Ints", "HString", "StringBuilder"];
-    public static string[] special = ["(", ")",  "return", "yield", "=", "foreach", ">", "<", "in"];
+    public static string[] special = ["(", ")",  "return", "yield", "=", "foreach", ">", "<", " in "];
 
-    public static bool Write(this IExcersise excersise)
+    public static bool Write(this IExercise Exercise)
     {
         var posy = 0;
         NormalClear();
-
-        AnimateText(1, posy++, [$"Задание #{excersise.Number}"], 50);
+        AnimateText(1, posy++, [$"Задание #{Exercise.Number}"], 50);
         posy++;
-        AnimateText(1, posy++, ["Что будет выведено на консоль?"], 10);
-        posy++;
-        AnimateTextLine(1, posy++, excersise.Code, 5);
-        if (excersise.Variants.Length > 0)
+        AnimateText(1, posy++, [$"Что будет выведено на консоль?"], 50);
+        ShowRectangle(1, posy++, Exercise.Code.Max(x=>x.Length) + 5 + Exercise.Code.Length.ToString().Length, Exercise.Code.Length + 2);
+        ShowLinesOfCode(2, posy, Exercise.Code.Length);
+        AnimateTextLine(4 + Exercise.Code.Length.ToString().Length, posy++, Exercise.Code, 1);        
+        if (Exercise.Variants.Length > 0)
         {            
-            AnimateTextLine(1, posy++ + excersise.Code.Length, ["Варианты ответов:"], 5);
-            AnimateTextLine(1, posy++ + excersise.Code.Length, excersise.Variants, 5);
+            AnimateTextLine(1, posy++ + Exercise.Code.Length + 2, ["Варианты ответов:"], 50);
+            AnimateTextLine(1, posy++ + Exercise.Code.Length + 2, Exercise.Variants, 5);
         }
-        AnimateTextLine(1, posy++ + excersise.Code.Length + excersise.Variants.Length, ["Ваш ответ: "], 5);
-        Console.SetCursorPosition(1, posy++ + excersise.Code.Length + excersise.Variants.Length);
+        AnimateTextLine(1, posy++ + Exercise.Code.Length + Exercise.Variants.Length + 2, ["Ваш ответ: "], 50);
+        Console.SetCursorPosition(1, posy++ + Exercise.Code.Length + Exercise.Variants.Length + 2);
         Console.CursorVisible = true;
         var answer = Console.ReadLine();
-        return excersise.Check(answer);
+        return Exercise.Check(answer);
     }
 }

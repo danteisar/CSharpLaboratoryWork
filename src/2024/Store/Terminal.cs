@@ -1,6 +1,7 @@
-﻿using Product.Lab4;
+﻿using Barcode.Lab3;
+using Product.Lab4;
 using Showcase.Lab4;
-using Store.Excersises;
+using Store.Exercises;
 using System.Text;
 using static Store.ConsoleExtensions.ConsoleWriter;
 using static Store.Constants;
@@ -27,7 +28,7 @@ public class Terminal
         _selectedIdPos = (6, HEIGHT - 1);
         _selectedNamePos = (8 + _rightSideInfoPos / 2, HEIGHT - 1);
 
-        _opeartions = new();
+        _operations = [];
 
         CanRun = true;
 
@@ -39,7 +40,7 @@ public class Terminal
     private bool _isFreeMoving = false;
 
     private readonly Item[,] _field;
-    private readonly List<Item> _opeartions;
+    private readonly List<Item> _operations;
     private readonly Customer _customer;
     private readonly int _rightSideInfoPos;
     private readonly (int x, int y) _storeIdPos;
@@ -136,48 +137,48 @@ public class Terminal
         {
             case ConsoleKey.A:
             case ConsoleKey.LeftArrow:
-                VisualizeOpeartion(Operations.MoveA, () => Search(true, -1));
+                VisualizeOperation(Operations.MoveA, () => Search(true, -1));
                 break;
             case ConsoleKey.W:
             case ConsoleKey.UpArrow:
-                VisualizeOpeartion(Operations.MoveW, () => Search(false, -1));
+                VisualizeOperation(Operations.MoveW, () => Search(false, -1));
                 break;
             case ConsoleKey.D:
             case ConsoleKey.RightArrow:
-                VisualizeOpeartion(Operations.MoveD, () => Search(true, 1));
+                VisualizeOperation(Operations.MoveD, () => Search(true, 1));
                 break;
             case ConsoleKey.S:
             case ConsoleKey.DownArrow:
-                VisualizeOpeartion(Operations.MoveS, () => Search(false, 1));
+                VisualizeOperation(Operations.MoveS, () => Search(false, 1));
                 break;
             case ConsoleKey.Spacebar:
-                VisualizeOpeartion(Operations.Space, Check);
+                VisualizeOperation(Operations.Space, Check);
                 canRestore = false;
                 break;
             case ConsoleKey.R:
-                VisualizeOpeartion(Operations.Remove, Remove);
+                VisualizeOperation(Operations.Remove, Remove);
                 canRestore = false;
                 break;
             case ConsoleKey.E:
-                VisualizeOpeartion(Operations.Sort, Sort);
+                VisualizeOperation(Operations.Sort, Sort);
                 canRestore = false;
                 break;
             case ConsoleKey.N:
-                VisualizeOpeartion(Operations.New, Add);
+                VisualizeOperation(Operations.New, Add);
                 canRestore = false;
                 break;
             case ConsoleKey.C:
-                VisualizeOpeartion(Operations.Clear, Clear);
+                VisualizeOperation(Operations.Clear, Clear);
                 canRestore = false;
                 break;
             case ConsoleKey.D1:
                 _isFreeMoving = !_isFreeMoving;
-                VisualizeOpeartion(Operations.MoveMode1);
+                VisualizeOperation(Operations.MoveMode1);
                 canRestore = false;
                 break;
             case ConsoleKey.D2:
                 _isFull = !_isFull;
-                VisualizeOpeartion(Operations.ShowMode2);
+                VisualizeOperation(Operations.ShowMode2);
                 canRestore = false;
                 break;
             case ConsoleKey.Z:
@@ -611,7 +612,7 @@ public class Terminal
         }
     }
 
-    private void VisualizeOpeartion(Operations o, Action action = null)
+    private void VisualizeOperation(Operations o, Action action = null)
     {
         if (o == Operations.MoveMode1)
         {
@@ -655,7 +656,7 @@ public class Terminal
     private void ShowOperation(Operations o, ConsoleColor c)
     {
         Console.ForegroundColor = c;
-        foreach (var item in _opeartions.Where(x => x.Operation == o))
+        foreach (var item in _operations.Where(x => x.Operation == o))
         {
             Console.SetCursorPosition(item.X, item.Y);
             Console.Write(item.Char);
@@ -664,7 +665,7 @@ public class Terminal
 
     private void Save(char c, Operations o, int x, int y)
     {
-        _opeartions.Add((c, o, x, y));
+        _operations.Add((c, o, x, y));
     }
 
     private void ShowHelp(int pos, string text)
@@ -785,8 +786,6 @@ public class Terminal
 
     private static bool _include5th = false;
 
-    
-
     private void Init()
     {
         if (IsDemo)
@@ -798,40 +797,37 @@ public class Terminal
             }
             while (key.Key != ConsoleKey.Y && key.Key != ConsoleKey.N && key.Key != ConsoleKey.Spacebar);
 
-            if (key.Key == ConsoleKey.Spacebar)
-                IncludeLoading = false;
-
-            if (key.Key == ConsoleKey.Y)
+            switch (key.Key)
             {
-                if (AskMessage("Вы хотите посмотреть, что должен выводить терминал при сдаче лаб? (y/n)").Key != ConsoleKey.Y)
-                {
-                    CanRun = false;
+                case ConsoleKey.Spacebar:
+                    IncludeLoading = false;
+                    _include5th = true;
+                    break;
+                case ConsoleKey.Y:
+                    if (AskMessage("Вы хотите посмотреть, что должен выводить терминал при сдаче лаб? (y/n)").Key != ConsoleKey.Y)
+                        CanRun = false;
+                    else
+                        ShowLab4Demo(true);
                     return;
-                }
-            }            
-
-            if (key.Key != ConsoleKey.Y)
-            {
-                AskMessage("Тогда порешаем задачи...");
-
-                _include5th = !new Excersise1().Write() 
-                    | !new Excersise2().Write() 
-                    | !new Excersise3().Write()
-                    | !new Excersise4().Write()
-                    | !new Excersise5().Write()
-                    | !new Excersise6().Write();
-
-                if (_include5th)
-                {
-                    AskMessage("Вы не прошли тест.");
-                    AskMessage("Вы можете ознакомится с демонстрацией 5й лабораторной работы.");
-                }
-                else
-                {
-                    AskMessage("Поздравляем! Вы прошли тест. У вас всего 4e лабораторных.");
-                    AskMessage("Далее можно посмотреть как работает терминал.");
-                }
-
+                default:
+                    AskMessage("Тогда порешаем задачи...");
+                    _include5th = !new Exercise1().Write()
+                        | !new Exercise2().Write()
+                        | !new Exercise3().Write()
+                        | !new Exercise4().Write()
+                        | !new Exercise5().Write()
+                        | !new Exercise6().Write();
+                    if (_include5th)
+                    {
+                        AskMessage("Вы не прошли тест.");
+                        AskMessage("Вы можете ознакомится с демонстрацией 5й лабораторной работы.");
+                    }
+                    else
+                    {
+                        AskMessage("Поздравляем! Вы прошли тест. У вас всего 4e лабораторных.");
+                        AskMessage("Далее можно посмотреть как работает терминал.");
+                    }
+                    break;
             }
 
             IsDemo = false;
@@ -843,17 +839,24 @@ public class Terminal
         }
         else
         {
-            ShowLab4Demo();
+            ShowLab4Demo(false); 
         }
     }
 
-    private void ShowLab4Demo()
+    private void ShowLab4Demo(bool was)
     {
         LoadData(out var store1, out var store2, out var _, out var lab4Data, out var lab4Data2);
 
         NormalClear();
+                
         Test4(store1, lab4Data.Concat(lab4Data2.Select(x => x as IThing4)), lab4Data[0]);
         Test4(store2, lab4Data2, lab4Data2[0]);
+
+        if (was) 
+        {
+            Barcode3 barcode3 = "19.09.2024";
+            Console.WriteLine(barcode3);
+        }
 
         Console.WriteLine("Press any key to continue...");
         Console.ReadKey(true);
@@ -865,11 +868,11 @@ public class Terminal
         LoadData(out var store1, out var store2, out var store3, out var _, out var _);
 
         ShowLoading();
-        _opeartions.Clear();
+        _operations.Clear();
         ClearConsole();
         ShowTerminal();
-        VisualizeOpeartion(Operations.MoveMode1);
-        VisualizeOpeartion(Operations.ShowMode2);
+        VisualizeOperation(Operations.MoveMode1);
+        VisualizeOperation(Operations.ShowMode2);
         ShowStore(store1, 2, 1, STORE1);
         ShowStore(store2, 2, 4, STORE2);
         ShowStore(store3, 2, 7, STORE3);
