@@ -3,7 +3,7 @@
 internal class Exercise4 : ExerciseBase, IExercise
 {
     public int Number => 4;
-
+   
     public string[] Code => ["public class Amplifier",
                          "{",
                          "    public string ModelName = 123;",

@@ -784,48 +784,50 @@ public class Terminal
 
     #region Help
 
-    private static bool _include5th = false;
+    private static bool _include5th = false;    
 
     private void Init()
     {
         if (IsDemo)
-        {
-            ConsoleKeyInfo key;
+        {            
+            ConsoleKey key;
             do
             {
                 key = AskMessage("Вы были 19.09.2024 на лекции? (y/n)");
             }
-            while (key.Key != ConsoleKey.Y && key.Key != ConsoleKey.N && key.Key != ConsoleKey.Spacebar);
+            while (key != ConsoleKey.Y && key != ConsoleKey.N && key != ConsoleKey.Spacebar);
 
-            switch (key.Key)
+            switch (key)
             {
                 case ConsoleKey.Spacebar:
                     IncludeLoading = false;
                     _include5th = true;
                     break;
                 case ConsoleKey.Y:
-                    if (AskMessage("Вы хотите посмотреть, что должен выводить терминал при сдаче лаб? (y/n)").Key != ConsoleKey.Y)
+                    if (AskMessage("Вы хотите посмотреть, что должен выводить терминал при сдаче лаб? (y/n)") != ConsoleKey.Y)
                         CanRun = false;
                     else
                         ShowLab4Demo(true);
                     return;
                 default:
-                    AskMessage("Тогда порешаем задачи...");
-                    _include5th = !new Exercise1().Write()
-                        | !new Exercise2().Write()
-                        | !new Exercise3().Write()
-                        | !new Exercise4().Write()
-                        | !new Exercise5().Write()
-                        | !new Exercise6().Write();
+                    AskMessage("Тогда порешаем задачи...", false);
+                    var score = new Exercise1().Write() 
+                        + new Exercise2().Write() 
+                        + new Exercise3().Write() 
+                        + new Exercise4().Write() 
+                        + new Exercise5().Write()
+                        + new Exercise6().Write();
+                    _include5th = score < 6;
                     if (_include5th)
                     {
-                        AskMessage("Вы не прошли тест.");
-                        AskMessage("Вы можете ознакомится с демонстрацией 5й лабораторной работы.");
+                        AskMessage("Вы не прошли тест.", false);
+                        AskMessage($"Количество верных ответов: {score} из 6", false);
+                        AskMessage("Вы можете ознакомится с демонстрацией 5й лабораторной работы.", false);
                     }
                     else
                     {
-                        AskMessage("Поздравляем! Вы прошли тест. У вас всего 4e лабораторных.");
-                        AskMessage("Далее можно посмотреть как работает терминал.");
+                        AskMessage("Поздравляем! Вы прошли тест. У вас всего 4e лабораторных.", false);
+                        AskMessage("Далее можно посмотреть как работает терминал.", false);
                     }
                     break;
             }
@@ -847,7 +849,7 @@ public class Terminal
     {
         LoadData(out var store1, out var store2, out var _, out var lab4Data, out var lab4Data2);
 
-        NormalClear();
+        ClearConsole();
                 
         Test4(store1, lab4Data.Concat(lab4Data2.Select(x => x as IThing4)), lab4Data[0]);
         Test4(store2, lab4Data2, lab4Data2[0]);
@@ -869,7 +871,7 @@ public class Terminal
 
         ShowLoading();
         _operations.Clear();
-        ClearConsole();
+        ClearTerminal();
         ShowTerminal();
         VisualizeOperation(Operations.MoveMode1);
         VisualizeOperation(Operations.ShowMode2);
@@ -888,12 +890,10 @@ public class Terminal
         {
             a.Push(product);
         }
-        Console.WriteLine("--- Сортировка по имени ---");
-        a.OrderByName();
-        Console.WriteLine("--- Изменеие ID ---");
-        a.Id++;
-        test.Id++;
         Console.WriteLine("--- Вывод результата ---");
+        a.OrderByName();        
+        a.Id++;
+        test.Id++;        
         Console.WriteLine(a);
     }
 

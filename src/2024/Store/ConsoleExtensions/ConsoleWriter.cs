@@ -1,4 +1,5 @@
-﻿using Barcode.Lab1;
+﻿using System.Text;
+using Barcode.Lab1;
 using Barcode.Lab3;
 using Store.Exercises;
 using static Store.Constants;
@@ -36,7 +37,7 @@ internal static class ConsoleWriter
         WriteChar(pos.x, pos.y, EMPTY);
     }
 
-    public static void NormalClear()
+    public static void ClearConsole()
     {
         Console.BackgroundColor = BACKGROUND_COLOR;
         Console.ForegroundColor = FOREGROUND_COLOR;
@@ -44,7 +45,7 @@ internal static class ConsoleWriter
         Console.CursorVisible = true;
     }
 
-    public static void ClearConsole()
+    public static void ClearTerminal()
     {
         Console.WindowHeight = HEIGHT + 1;
         if (Console.WindowWidth < 121)
@@ -65,7 +66,7 @@ internal static class ConsoleWriter
     {
         if (!IncludeLoading) return;
 
-        NormalClear();
+        ClearConsole();
         var rnd = new Random();
         Console.CursorVisible = false;
         var y = 0;
@@ -83,7 +84,7 @@ internal static class ConsoleWriter
         }
         AnimateText(4, y, ["TERMINAL.EXE"], 50);
         Thread.Sleep(500);
-        ClearConsole();
+        ClearTerminal();
         Barcode1 logo = "TERMINAL v.1.0";
         var text = logo.ToString().Split('\n');
         var posX = (Console.WindowWidth - text[0].Length + 2) / 2;
@@ -214,14 +215,19 @@ internal static class ConsoleWriter
         }
     }
 
-    public static ConsoleKeyInfo AskMessage(string text)
+    public static ConsoleKey AskMessage(string text, bool isReadKey = true, int delay = 2000)
     {
-        NormalClear();
+        ClearConsole();
         var posX = (Console.WindowWidth - text.Length + 2) / 2;
         var posY = (Console.WindowHeight - 3) / 2;
         ShowRectangle(posX, posY, text.Length + 2, 3);
         AnimateText(posX + 1, posY + 1, [text], 5);
-        return Console.ReadKey(true);
+        if (!isReadKey) 
+        {
+            Thread.Sleep(delay);
+            return ConsoleKey.None;
+        }
+        return Console.ReadKey(true).Key;
     }
 
     private static bool FindWord(ConsoleColor targetColor, string[] source, string text, ref int count, ref ConsoleColor consoleColor)
@@ -251,25 +257,72 @@ internal static class ConsoleWriter
     public static string[] classes = ["Console", "Amplifier", "BaseStorage", "ItemsStorage", "IEnumerable", "List", "Ints", "HString", "StringBuilder"];
     public static string[] special = ["(", ")",  "return", "yield", "=", "foreach", ">", "<", " in "];
 
-    public static bool Write(this IExercise Exercise)
+    private static int WriteCode(int posX, int posY, string[] code)
+    {
+        ShowRectangle(posX, posY++, code.Max(x=>x.Length) + 5 + code.Length.ToString().Length, code.Length + 2);
+        ShowLinesOfCode(posX + 1, posY, code.Length);
+        AnimateTextLine(posX + 3 + code.Length.ToString().Length, posY++, code, 1);
+        return posY;
+    }
+
+    public static int Write(this IExercise exercise)
     {
         var posy = 0;
-        NormalClear();
-        AnimateText(1, posy++, [$"Задание #{Exercise.Number}"], 50);
+        ClearConsole();
+        AnimateText(1, posy++, [$"Задание #{exercise.Number}"], 50);
         posy++;
         AnimateText(1, posy++, [$"Что будет выведено на консоль?"], 50);
-        ShowRectangle(1, posy++, Exercise.Code.Max(x=>x.Length) + 5 + Exercise.Code.Length.ToString().Length, Exercise.Code.Length + 2);
-        ShowLinesOfCode(2, posy, Exercise.Code.Length);
-        AnimateTextLine(4 + Exercise.Code.Length.ToString().Length, posy++, Exercise.Code, 1);        
-        if (Exercise.Variants.Length > 0)
+        posy = WriteCode(1, posy, exercise.Code);                        
+        if (exercise.Variants.Length > 0)
         {            
-            AnimateTextLine(1, posy++ + Exercise.Code.Length + 2, ["Варианты ответов:"], 50);
-            AnimateTextLine(1, posy++ + Exercise.Code.Length + 2, Exercise.Variants, 5);
+            AnimateTextLine(1, posy++ + exercise.Code.Length + 2, ["Варианты ответов:"], 50);
+            AnimateTextLine(1, posy++ + exercise.Code.Length + 2, exercise.Variants, 5);
         }
-        AnimateTextLine(1, posy++ + Exercise.Code.Length + Exercise.Variants.Length + 2, ["Ваш ответ: "], 50);
-        Console.SetCursorPosition(1, posy++ + Exercise.Code.Length + Exercise.Variants.Length + 2);
-        Console.CursorVisible = true;
-        var answer = Console.ReadLine();
-        return Exercise.Check(answer);
+        posy += exercise.Code.Length + exercise.Variants.Length + 2;
+        
+        AnimateTextLine(1, posy++, [], 50); 
+        var answer = InputWait(1, posy, exercise.NeedTime);  
+        return exercise.Check(answer) ? 1 : 0;
+    }
+
+    public static string InputWait(int posX, int posY, TimeSpan period)
+    {
+        ConsoleKeyInfo cki;
+        var dt = DateTime.Now;
+        var sb = new StringBuilder(10);
+        var sb2 = new StringBuilder(10);
+        WriteString(posX, posY, "Осталось времени:");
+        WriteString(posX, posY + 1, period.ToString(@"mm\:ss"));
+        WriteString(posX, posY + 2, "Ваш ответ: ");        
+        do 
+        {                        
+            while (Console.KeyAvailable == false)
+            {
+                var rest = period - (DateTime.Now - dt);
+                WriteString(posX, posY + 1, rest.ToString(@"mm\:ss"));    
+                
+                if (rest.TotalMilliseconds <= 0) 
+                    return sb.ToString(); 
+
+                Thread.Sleep(100);
+            }           
+
+            cki = Console.ReadKey(true);
+            if (cki.Key != ConsoleKey.Enter)
+            {
+                sb.Append(cki.KeyChar);    
+                sb2.Append(' ');           
+            } 
+            if (cki.Key == ConsoleKey.Backspace)
+            {
+                sb.Clear();
+                WriteString(posX, posY + 3, sb2.ToString());
+                sb2.Clear();                
+            }           
+            
+            WriteString(posX, posY + 3, sb.ToString());
+        } 
+        while(cki.Key != ConsoleKey.Enter );
+        return sb.ToString();
     }
 }

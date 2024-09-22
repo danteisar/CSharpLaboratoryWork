@@ -4,6 +4,8 @@ internal class Exercise5 : ExerciseBase, IExercise
 {
     public int Number => 5;
 
+    public override TimeSpan NeedTime { get; } = TimeSpan.FromMinutes(10);
+    
     public string[] Code => ["public static void Do(IComparable[] objects, int left, int right)",
                              "{",
                              "    int i = left, j = right;",

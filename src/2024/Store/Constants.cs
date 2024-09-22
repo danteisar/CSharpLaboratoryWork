@@ -2,7 +2,7 @@
 
 internal class Constants
 {
-#if !DEBUG
+#if DEBUG
     public const ConsoleColor BACKGROUND_COLOR = ConsoleColor.Black;
     public const ConsoleColor FOREGROUND_COLOR = ConsoleColor.White;
 

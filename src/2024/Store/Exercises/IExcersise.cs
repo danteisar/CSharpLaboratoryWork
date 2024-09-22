@@ -6,5 +6,6 @@ internal interface IExercise
     string[] Code { get; }
     string[] Variants { get; }
     bool Check(string text);
-    public string Exercise();   
+    string Exercise();   
+    TimeSpan NeedTime {get; }
 }
