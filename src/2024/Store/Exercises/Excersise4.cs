@@ -14,27 +14,28 @@ internal class Exercise4 : ExerciseBase, IExercise
                          "        ModelName = modelName;",
                          "        Volume = volume;",
                          "    }",
+                         "}",
                          " ",
                          "var a = new Amplifier();",
                          "Console.WriteLine(a.Volume);"];
 
     public string[] Variants => [];
 
-    public override string Exercise()
+    public class Amplifier
     {
-        return "";// ,"Add";
-    }
-
-    public class BaseStorage
-    {
-        private List<double> _list = new();
-        public virtual void Add(double value)=>_list.Add(value);
-        public virtual void AddAll(IEnumerable<double> values)
+        public string ModelName = string.Empty;
+        public int Volume = 123;
+        public Amplifier() : this("Model X", 69) { }
+        public Amplifier(string modelName, int volume) //: this()
         {
-            foreach (var val in values)
-            {
-                Add(val);
-            }
+            ModelName = modelName;
+            Volume = volume;
         }
     }
+
+    public override string Exercise()
+    {
+        var a = new Amplifier();        
+        return string.Empty;// Error
+    }    
 }

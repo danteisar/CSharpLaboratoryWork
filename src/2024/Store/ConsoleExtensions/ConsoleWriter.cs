@@ -165,6 +165,28 @@ internal static class ConsoleWriter
         WriteChar(offsetX + width, offsetY + height, A10);
     }
 
+    public static void ShowHorizontalBorder(int offsetX, int offsetY, int width)
+    {
+        width--; 
+        for (int i = 1; i < width; i++)
+        {
+            WriteChar(offsetX + i, offsetY, A9);
+        }        
+        WriteChar(offsetX, offsetY, A7);
+        WriteChar(offsetX + width, offsetY, A2);
+    }
+
+    public static void ShowVerticalBorder(int offsetX, int offsetY, int height)
+    {
+        height--; 
+        for (int i = 1; i < height; i++)
+        {
+            WriteChar(offsetX, offsetY + i, IV);
+        }        
+        WriteChar(offsetX, offsetY, A6);
+        WriteChar(offsetX, offsetY + height, A5);
+    }
+
     public static void ShowLinesOfCode(int offsetX, int offsetY, int count)
     {
         if (count == 0) return;
@@ -177,19 +199,36 @@ internal static class ConsoleWriter
         WriteChar(offsetX + width, offsetY + count, A5);
     }
 
-    private static void Write(string text, int delay)
+    private static void WriteCode(string text, int delay, ref int scope)
     {
         if (string.IsNullOrEmpty(text)) return;
 
         var count = 1;
-        var cc = FOREGROUND_COLOR;
+        var cc = FOREGROUND_COLOR_VAR;        
 
         var res = FindKeyWord(ref count, ref cc, text)
             || FindClassName(ref count, ref cc, text)
-            || FindFunctionName(ref count, ref cc, text)
+            || FindFunctionName(ref count, ref cc, text)            
+            || FindRest(ref count, ref cc, text)
             || FindSpecial(ref count, ref cc, text);
 
         Console.ForegroundColor = cc;
+
+        if (text[0] == '(') scope++;        
+        if ((text[0] == '(' || text[0] == ')') && count == 1)
+            switch (scope % 3)
+            {
+                case 0:
+                    Console.ForegroundColor = FOREGROUND_COLOR_KEYWORD;
+                break;
+                case 1:
+                    Console.ForegroundColor = FOREGROUND_COLOR_FUNCTION;
+                break;
+                case 2:
+                    Console.ForegroundColor = FOREGROUND_COLOR_SPECIAL;
+                break;
+            }        
+        if (text[0] == ')') scope--;
 
         if (res)
         {
@@ -201,9 +240,14 @@ internal static class ConsoleWriter
             Console.Write(text[0]);
         }
         Thread.Sleep(delay);
-        Write(text[count..], delay);
+        WriteCode(text[count..], delay, ref scope);
     }
-
+    
+    private static void WriteText(string text, int delay){
+        Console.Write(text);
+        Thread.Sleep(delay);
+    }
+    
     public static void AnimateTextLine(int x, int y, string[] text, int delay)
     {
         var posY = y;
@@ -211,7 +255,19 @@ internal static class ConsoleWriter
         {
             var posX = x;
             Console.SetCursorPosition(posX, posY++);
-            Write(line, delay);
+            WriteText(line, delay);
+        }
+    }
+    
+    public static void AnimateCodeLine(int x, int y, string[] text, int delay)
+    {
+        var posY = y;
+        var scope = -1;
+        foreach (var line in text)
+        {
+            var posX = x;
+            Console.SetCursorPosition(posX, posY++);
+            WriteCode(line, delay, ref scope);
         }
     }
 
@@ -247,59 +303,126 @@ internal static class ConsoleWriter
         => FindWord(FOREGROUND_COLOR_CLASSES, classes, text, ref count, ref consoleColor);
     private static bool FindFunctionName(ref int count, ref ConsoleColor consoleColor, string text)
         => FindWord(FOREGROUND_COLOR_FUNCTION, functions, text, ref count, ref consoleColor);
-
     private static bool FindSpecial(ref int count, ref ConsoleColor consoleColor, string text)
         => FindWord(FOREGROUND_COLOR_SPECIAL, special, text, ref count, ref consoleColor);
+    private static bool FindRest(ref int count, ref ConsoleColor consoleColor, string text)
+        => FindWord(FOREGROUND_COLOR, rest, text, ref count, ref consoleColor);
 
-    public static string[] keyWords = ["var", "public", "private", "protected", "int", "string", "double", 
-         "this", "while", "new", "readonly",  "base", "virtual", "override", "get", "set", "void", "class", "{", "}"];
-    public static string[] functions = ["[", "]", "WriteLine", "IComparable", "CompareTo", "Do", "AddAll", "Add", "ToString"];
-    public static string[] classes = ["Console", "Amplifier", "BaseStorage", "ItemsStorage", "IEnumerable", "List", "Ints", "HString", "StringBuilder"];
-    public static string[] special = ["(", ")",  "return", "yield", "=", "foreach", ">", "<", " in "];
+    public static string[] keyWords = ["var", 
+                                       "static",
+                                       "public", 
+                                       "private", 
+                                       "int", 
+                                       "string", 
+                                       "double", 
+                                       "this", 
+                                       "while", 
+                                       "new", 
+                                       "readonly",  
+                                       "base", 
+                                       "virtual", 
+                                       "override", 
+                                       "get", 
+                                       "set", 
+                                       "void", 
+                                       "class", 
+                                       "{", "}", 
+                                       "const",
+                                       "if"];
+    public static string[] functions = ["WriteLine", 
+                                        "CompareTo", 
+                                        "Do", 
+                                        "AddAll", 
+                                        "Add", 
+                                        "ToString", 
+                                        "GetInts", 
+                                        "Last",
+                                        "Init",
+                                        "Count"];
+    public static string[] classes = ["Console", 
+                                      "Amplifier", 
+                                      "BaseStorage", 
+                                      "IComparable", 
+                                      "ItemsStorage", 
+                                      "IEnumerable", 
+                                      "List", 
+                                      "HString", 
+                                      "StringBuilder"];
+    public static string[] special = ["return", 
+                                      "yield",                                       
+                                      "foreach",                                      
+                                      " in ",
+                                      "<", ">",
+                                      "[", "]",
+                                      "\"Model X\""];
+    public static string[] rest = [";", 
+                                   "~",
+                                   "<<",
+                                   "=>", 
+                                   "<=", 
+                                   " > ", 
+                                   " < ", 
+                                   " = ",
+                                   " : ",
+                                   " + ",
+                                   "++",
+                                   "+=",
+                                   "--",
+                                   "/",
+                                   "-",
+                                   ",",
+                                   ".",];
 
     private static int WriteCode(int posX, int posY, string[] code)
     {
         ShowRectangle(posX, posY++, code.Max(x=>x.Length) + 5 + code.Length.ToString().Length, code.Length + 2);
         ShowLinesOfCode(posX + 1, posY, code.Length);
-        AnimateTextLine(posX + 3 + code.Length.ToString().Length, posY++, code, 1);
+        AnimateCodeLine(posX + 3 + code.Length.ToString().Length, posY++, code, 1);
         return posY;
     }
 
     public static int Write(this IExercise exercise)
     {
-        var posy = 0;
+        var posy = 1;
         ClearConsole();
+        var height = exercise.Code.Length + exercise.Variants.Length + 10;
+        if (exercise.Variants.Length > 0) height += 2;
+        if (Console.WindowHeight < height) Console.WindowHeight = height;
+        ShowRectangle(0, 0, Console.WindowWidth, height);
+        ShowHorizontalBorder(0, height - 3, Console.WindowWidth);
+        ShowHorizontalBorder(0, 2, Console.WindowWidth);
+        ShowVerticalBorder(25, height - 3, 3);
+        WriteString(1, height - 2, "Осталось времени: " + exercise.NeedTime.ToString(@"mm\:ss"));
+        WriteString(27, height - 2, "Ваш ответ:");
         AnimateText(1, posy++, [$"Задание #{exercise.Number}"], 50);
-        posy++;
+        posy++;        
         AnimateText(1, posy++, [$"Что будет выведено на консоль?"], 50);
         posy = WriteCode(1, posy, exercise.Code);                        
         if (exercise.Variants.Length > 0)
-        {            
-            AnimateTextLine(1, posy++ + exercise.Code.Length + 2, ["Варианты ответов:"], 50);
-            AnimateTextLine(1, posy++ + exercise.Code.Length + 2, exercise.Variants, 5);
+        {   
+            Console.ForegroundColor = FOREGROUND_COLOR;         
+            AnimateTextLine(1, posy++ + exercise.Code.Length + 1, ["Варианты ответов:"], 50);
+            AnimateTextLine(1, posy++ + exercise.Code.Length + 1, exercise.Variants, 5);
         }
-        posy += exercise.Code.Length + exercise.Variants.Length + 2;
-        
+        posy += exercise.Code.Length + exercise.Variants.Length + 2;        
         AnimateTextLine(1, posy++, [], 50); 
-        var answer = InputWait(1, posy, exercise.NeedTime);  
+        Console.ForegroundColor = FOREGROUND_COLOR_VAR;
+        var answer = InputWait(19, height - 2, exercise.NeedTime, 38, height - 2);  
         return exercise.Check(answer) ? 1 : 0;
     }
 
-    public static string InputWait(int posX, int posY, TimeSpan period)
+    public static string InputWait(int posX, int posY, TimeSpan period, int x, int y)
     {
         ConsoleKeyInfo cki;
         var dt = DateTime.Now;
         var sb = new StringBuilder(10);
-        var sb2 = new StringBuilder(10);
-        WriteString(posX, posY, "Осталось времени:");
-        WriteString(posX, posY + 1, period.ToString(@"mm\:ss"));
-        WriteString(posX, posY + 2, "Ваш ответ: ");        
+        var sb2 = new StringBuilder(10);           
         do 
         {                        
             while (Console.KeyAvailable == false)
             {
                 var rest = period - (DateTime.Now - dt);
-                WriteString(posX, posY + 1, rest.ToString(@"mm\:ss"));    
+                WriteString(posX, posY, rest.ToString(@"mm\:ss"));    
                 
                 if (rest.TotalMilliseconds <= 0) 
                     return sb.ToString(); 
@@ -316,11 +439,11 @@ internal static class ConsoleWriter
             if (cki.Key == ConsoleKey.Backspace)
             {
                 sb.Clear();
-                WriteString(posX, posY + 3, sb2.ToString());
+                WriteString(x, y, sb2.ToString());
                 sb2.Clear();                
             }           
             
-            WriteString(posX, posY + 3, sb.ToString());
+            WriteString(x, y, sb.ToString());
         } 
         while(cki.Key != ConsoleKey.Enter );
         return sb.ToString();

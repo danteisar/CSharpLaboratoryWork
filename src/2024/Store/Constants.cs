@@ -2,7 +2,7 @@
 
 internal class Constants
 {
-#if DEBUG
+#if !DEBUG
     public const ConsoleColor BACKGROUND_COLOR = ConsoleColor.Black;
     public const ConsoleColor FOREGROUND_COLOR = ConsoleColor.White;
 
@@ -27,10 +27,11 @@ internal class Constants
     public const ConsoleColor STORE2 = ConsoleColor.Red;
     public const ConsoleColor STORE3 = ConsoleColor.Black;
 #endif
-   
-    public const ConsoleColor FOREGROUND_COLOR_KEYWORD = ConsoleColor.Blue;
+
+    public const ConsoleColor FOREGROUND_COLOR_VAR = ConsoleColor.Blue;   
+    public const ConsoleColor FOREGROUND_COLOR_KEYWORD = ConsoleColor.DarkBlue;
     public const ConsoleColor FOREGROUND_COLOR_FUNCTION = ConsoleColor.DarkYellow;
-    public const ConsoleColor FOREGROUND_COLOR_CLASSES = ConsoleColor.Green;
+    public const ConsoleColor FOREGROUND_COLOR_CLASSES = ConsoleColor.DarkGreen;
     public const ConsoleColor FOREGROUND_COLOR_SPECIAL = ConsoleColor.Magenta;
 
     public const char OPERATOR = '*';

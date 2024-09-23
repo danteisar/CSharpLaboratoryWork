@@ -12,7 +12,6 @@ internal class Exercise6 : ExerciseBase, IExercise
                              "    {",
                              "        foreach (var element in values)",
                              "            Add(element);",
-                             "    ",
                              "    }",
                              "}",
                              "public class ItemsStorage: BaseStorage",

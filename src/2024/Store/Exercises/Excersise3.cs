@@ -13,10 +13,10 @@ internal class Exercise3 : ExerciseBase, IExercise
                              "    private void Init(int iniSize) => sb = new StringBuilder(iniSize);",
                              "    public HString() => Init(initSize);",
                              "    public HString(int iniSize) => Init(initSize);",
-                             "    public StringBuilder StringBuilder => sb;",
+                             "    public StringBuilder SB => sb;",
                              "}",
                              " ",
-                             "Console.WriteLine(new HString(256).StringBuilder.Capacity);"
+                             "Console.WriteLine(new HString(256).SB.Capacity);"
                              ];
 
     public string[] Variants => ["0","64","128", "256"];
