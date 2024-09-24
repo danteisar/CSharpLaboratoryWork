@@ -17,7 +17,7 @@ internal class Exercise63: ExerciseBase, IExercise
                              "public class ItemsStorage: BaseStorage",
                              "{",
                              "    public new int Amount { get; private set; } = 0;",
-                             "    public override void Add(double value)",
+                             "    public new Add(double value)",
                              "    {",
                              "        Amount++;",
                              "        base.Add(value);",
@@ -33,7 +33,7 @@ internal class Exercise63: ExerciseBase, IExercise
                              "itemsStorage.AddAll([1, 2, 3]);",
                              "Console.WriteLine(itemsStorage.Count);"];
 
-    public string[] Variants => [];
+    public string[] Variants => ["0", "3", "6", "9"];
 
     public class BaseStorage
     {

@@ -33,7 +33,7 @@ internal class Exercise62 : ExerciseBase, IExercise
                              "itemsStorage.AddAll([1, 2, 3]);",
                              "Console.WriteLine(itemsStorage.Count);"];
 
-    public string[] Variants => [];
+    public string[] Variants => ["0", "3", "6", "9"];
 
     public class BaseStorage
     {

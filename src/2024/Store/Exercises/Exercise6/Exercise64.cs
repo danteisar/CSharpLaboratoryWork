@@ -1,9 +1,12 @@
-﻿namespace Store.Exercises.Exercise6;
+using System;
 
-internal class Exercise61 : ExerciseBase, IExercise
+namespace Store.Exercises.Exercise6;
+
+internal class Exercise64: ExerciseBase, IExercise
 {
     public string[] Code => ["public class BaseStorage",
                              "{",
+                             "    public int Amount { get; private set; } = 0;",
                              "    private readonly List<double> _list = [];",
                              "    public virtual void Add(double value) => _list.Add(value);",
                              "    public virtual void AddAll(IEnumerable<double> values)",
@@ -14,8 +17,8 @@ internal class Exercise61 : ExerciseBase, IExercise
                              "}",
                              "public class ItemsStorage: BaseStorage",
                              "{",
-                             "    public int Amount { get; private set; } = 0;",
-                             "    public override void Add(double value)",
+                             "    public new int Amount { get; private set; } = 0;",
+                             "    public override Add(double value)",
                              "    {",
                              "        Amount++;",
                              "        base.Add(value);",
@@ -27,7 +30,7 @@ internal class Exercise61 : ExerciseBase, IExercise
                              "    }",
                              "}",
                              " ",
-                             "ItemsStorage itemsStorage = new();",
+                             "BaseStorage itemsStorage = new ItemsStorage();",
                              "itemsStorage.AddAll([1, 2, 3]);",
                              "Console.WriteLine(itemsStorage.Count);"];
 
@@ -35,6 +38,7 @@ internal class Exercise61 : ExerciseBase, IExercise
 
     public class BaseStorage
     {
+        public int Amount { get; private set; } = 0;
         private readonly List<double> _list = [];
         public virtual void Add(double value) => _list.Add(value);
         public virtual void AddAll(IEnumerable<double> values)
@@ -46,7 +50,7 @@ internal class Exercise61 : ExerciseBase, IExercise
 
     public class ItemsStorage: BaseStorage
     {
-        public int Amount { get; private set; } = 0;
+        public new int Amount { get; private set; } = 0;
         public override void Add(double value)
         {
             Amount++;
@@ -54,14 +58,14 @@ internal class Exercise61 : ExerciseBase, IExercise
         }
         public override void AddAll(IEnumerable<double> values)
         {
-            Amount += values.Count();
+            Amount -= values.Count();
             base.AddAll(values);
         }
     }
 
     public override string Exercise()
     {
-        ItemsStorage itemsStorage = new();
+        BaseStorage itemsStorage = new ItemsStorage();
         itemsStorage.AddAll([1, 2, 3]);
         return itemsStorage.Amount.ToString();
     }

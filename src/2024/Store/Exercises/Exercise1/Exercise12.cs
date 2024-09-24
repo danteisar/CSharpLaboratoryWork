@@ -8,28 +8,15 @@ internal class Exercise12: ExerciseBase, IExercise
                              "{",
                              "    yield return 1;",
                              "    Console.WriteLine(2);",
-                             "    yield return 3;",
-                             "    Console.WriteLine(4);",
+                             "    yield return 3;",                            
                              "}",
                              " ",
                              "Console.WriteLine(GetInts().Last());"
                              ];
 
-    public string[] Variants => ["3", "2 4 3", "2 3", "4 3 2", "4 3"];
- 
-    private static string _tmp = string.Empty;
-    public static IEnumerable<string> GetInts()
-    {
-        yield return "1";
-        _tmp += "2";
-        yield return "3";
-        _tmp += "4";
-    }
-
+    public string[] Variants => ["2", "3", "2 3", "3 2"];
     public override string Exercise()
     {
-        _tmp = string.Empty;
-        _tmp += GetInts().Last();
-        return "2 4 3";
+        return "2 3";
     }
 }

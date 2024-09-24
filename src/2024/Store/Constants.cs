@@ -28,12 +28,6 @@ internal class Constants
     public const ConsoleColor STORE3 = ConsoleColor.Black;
 #endif
 
-    public const ConsoleColor FOREGROUND_COLOR_VAR = ConsoleColor.Blue;   
-    public const ConsoleColor FOREGROUND_COLOR_KEYWORD = ConsoleColor.DarkBlue;
-    public const ConsoleColor FOREGROUND_COLOR_FUNCTION = ConsoleColor.DarkYellow;
-    public const ConsoleColor FOREGROUND_COLOR_CLASSES = ConsoleColor.DarkGreen;
-    public const ConsoleColor FOREGROUND_COLOR_SPECIAL = ConsoleColor.Magenta;
-
     public const char OPERATOR = '*';
     public const int HEIGHT = 30;
     public const int FIELD_HEIGHT = 10;
