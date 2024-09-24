@@ -2,6 +2,12 @@
 using Product.Lab4;
 using Showcase.Lab4;
 using Store.Exercises;
+using Store.Exercises.Exercise1;
+using Store.Exercises.Exercise2;
+using Store.Exercises.Exercise3;
+using Store.Exercises.Exercise4;
+using Store.Exercises.Exercise5;
+using Store.Exercises.Exercise6;
 using System.Text;
 using static Store.ConsoleExtensions.ConsoleWriter;
 using static Store.Constants;
@@ -785,17 +791,17 @@ public class Terminal
     #region Help
 
     private static bool _include5th = false;    
-
+    private static bool _showAnswers = false; 
     private void Init()
     {
         if (IsDemo)
-        {            
+        {
             ConsoleKey key;
             do
             {
                 key = AskMessage("Вы были 19.09.2024 на лекции? (y/n)");
             }
-            while (key != ConsoleKey.Y && key != ConsoleKey.N && key != ConsoleKey.Spacebar);
+            while (key != ConsoleKey.Y && key != ConsoleKey.N && key != ConsoleKey.Spacebar && key != ConsoleKey.H);
 
             switch (key)
             {
@@ -810,25 +816,9 @@ public class Terminal
                         ShowLab4Demo(true);
                     return;
                 default:
-                    AskMessage("Тогда порешаем задачи...", false);
-                    var score = new Exercise1().Write() 
-                        + new Exercise2().Write() 
-                        + new Exercise3().Write() 
-                        + new Exercise4().Write() 
-                        + new Exercise5().Write()
-                        + new Exercise6().Write();
-                    _include5th = score < 6;
-                    if (_include5th)
-                    {
-                        AskMessage("Вы не прошли тест.", false);
-                        AskMessage($"Количество верных ответов: {score} из 6", false);
-                        AskMessage("Вы можете ознакомится с демонстрацией 5й лабораторной работы.", false);
-                    }
-                    else
-                    {
-                        AskMessage("Поздравляем! Вы прошли тест. У вас всего 4e лабораторных.", false);
-                        AskMessage("Далее можно посмотреть как работает терминал.", false);
-                    }
+                if (key == ConsoleKey.H)
+                    _showAnswers = true;
+                    ShowExercises();
                     break;
             }
 
@@ -842,6 +832,46 @@ public class Terminal
         else
         {
             ShowLab4Demo(false); 
+        }
+    }
+
+    private static void ShowExercises()
+    {
+        AskMessage("Тогда порешаем задачи...", false);
+        var rnd = new Random();
+        List<List<IExercise>> exercises = [[new Exercise11(), new Exercise12(), new Exercise13()], 
+                                            [new Exercise21(), new Exercise22(), new Exercise23(), new Exercise24()], 
+                                            [new Exercise31(), new Exercise32(), new Exercise33()], 
+                                            [new Exercise41(), new Exercise42(), new Exercise43()], 
+                                            [new Exercise51(), new Exercise52(), new Exercise53()], 
+                                            [new Exercise61(), new Exercise62(), new Exercise63()]]; 
+                                            
+        List<IExercise> selected = [];
+        int num = 1;
+        for (int i = 0; i < exercises.Count; i++){
+            var j = rnd.Next(0, exercises[i].Count);
+            exercises[i][j].Number = num++;
+            selected.Add(exercises[i][j]);
+        }                    
+        var score = 0;
+        foreach (var exercise in selected) 
+        {
+                score += exercise.Write();
+                if (_showAnswers) 
+                    AskMessage("Ответ:" + exercise.Exercise(), false);
+        } 
+
+        _include5th = score < 6;
+        if (_include5th)
+        {
+            AskMessage("Вы не прошли тест.", false);
+            AskMessage($"Количество верных ответов: {score} из 6", false);
+            AskMessage("Вы можете ознакомится с демонстрацией 5й лабораторной работы.", false);
+        }
+        else
+        {
+            AskMessage("Поздравляем! Вы прошли тест. У вас всего 4e лабораторных.", false);
+            AskMessage("Далее можно посмотреть как работает терминал.", false);
         }
     }
 

@@ -1,12 +1,10 @@
-﻿namespace Store.Exercises;
+﻿namespace Store.Exercises.Exercise5;
 
-internal class Exercise5 : ExerciseBase, IExercise
+internal class Exercise51 : ExerciseBase, IExercise
 {
-    public int Number => 5;
-
     public override TimeSpan NeedTime { get; } = TimeSpan.FromMinutes(10);
     
-    public string[] Code => ["public static void Do(IComparable[] objects, int left, int right)",
+    public virtual string[] Code => ["public static void Do(IComparable[] objects, int left, int right)",
                              "{",
                              "    int i = left, j = right;",
                              "    IComparable pivot = objects[(left + right) / 2];",
@@ -22,9 +20,10 @@ internal class Exercise5 : ExerciseBase, IExercise
                              "}",
                              " ",
                              "var array = [5, 3, 2, 1, 4];",
-                             "Do(array, 0, i.Length - 1)"];
+                             "Do(array, 0, i.Length - 1)",                            
+                             "Console.WriteLine(string.Join(\" \", array.Select(x => x.ToString()).ToArray());"];
 
-    public string[] Variants => ["5 3 2 1 4", "1 2 3 5 4", "1 2 3 4 5", "5 4 3 2 1"];
+    public string[] Variants => ["5 3 2 1 4", "1 2 3 5 4", "1 2 3 4 5", "5 1 2 3 4"];
 
     public class Ints(int i): IComparable
     {
@@ -57,15 +56,13 @@ internal class Exercise5 : ExerciseBase, IExercise
         } 
     }
 
+    public static string Example(Ints[] i) {        	
+        return string.Join(" ", i.Select(x => x.ToString()).ToArray());       
+    }
     public override string Exercise()
     {
         Ints[] i = [5, 3, 2, 1, 4];
         Do(i, 0, i.Length - 1);
-        var tmp = string.Empty;
-        foreach (var item in i)
-        {
-            tmp += item + " ";
-        }
-        return tmp.TrimEnd();
+        return Example(i);
     }
 }

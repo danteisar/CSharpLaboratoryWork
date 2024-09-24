@@ -373,16 +373,17 @@ internal static class ConsoleWriter
                                    ",",
                                    ".",];
 
-    private static int WriteCode(int posX, int posY, string[] code)
+    private static int WriteCode(int posX, int posY, string[] code, int delay = 1)
     {
         ShowRectangle(posX, posY++, code.Max(x=>x.Length) + 5 + code.Length.ToString().Length, code.Length + 2);
         ShowLinesOfCode(posX + 1, posY, code.Length);
-        AnimateCodeLine(posX + 3 + code.Length.ToString().Length, posY++, code, 1);
+        AnimateCodeLine(posX + 3 + code.Length.ToString().Length, posY++, code, delay);
         return posY;
     }
 
     public static int Write(this IExercise exercise)
     {
+        int speed = 50;
         var posy = 1;
         ClearConsole();
         var height = exercise.Code.Length + exercise.Variants.Length + 10;
@@ -394,20 +395,20 @@ internal static class ConsoleWriter
         ShowVerticalBorder(25, height - 3, 3);
         WriteString(1, height - 2, "Осталось времени: " + exercise.NeedTime.ToString(@"mm\:ss"));
         WriteString(27, height - 2, "Ваш ответ:");
-        AnimateText(1, posy++, [$"Задание #{exercise.Number}"], 50);
+        AnimateText(1, posy++, [$"Задание #{exercise.Number}"], speed);
         posy++;        
-        AnimateText(1, posy++, [$"Что будет выведено на консоль?"], 50);
+        AnimateText(1, posy++, [$"Что будет выведено на консоль?"], speed);
         posy = WriteCode(1, posy, exercise.Code);                        
         if (exercise.Variants.Length > 0)
         {   
             Console.ForegroundColor = FOREGROUND_COLOR;         
-            AnimateTextLine(1, posy++ + exercise.Code.Length + 1, ["Варианты ответов:"], 50);
-            AnimateTextLine(1, posy++ + exercise.Code.Length + 1, exercise.Variants, 5);
+            AnimateTextLine(1, posy++ + exercise.Code.Length + 1, ["Варианты ответов:"], speed);
+            AnimateTextLine(1, posy++ + exercise.Code.Length + 1, exercise.Variants, speed);
         }
         posy += exercise.Code.Length + exercise.Variants.Length + 2;        
-        AnimateTextLine(1, posy++, [], 50); 
+        AnimateTextLine(1, posy++, [], speed); 
         Console.ForegroundColor = FOREGROUND_COLOR_VAR;
-        var answer = InputWait(19, height - 2, exercise.NeedTime, 38, height - 2);  
+        var answer = InputWait(19, height - 2, exercise.NeedTime, 38, height - 2);          
         return exercise.Check(answer) ? 1 : 0;
     }
 

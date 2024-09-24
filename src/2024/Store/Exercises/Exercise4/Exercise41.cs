@@ -1,9 +1,7 @@
-﻿namespace Store.Exercises;
+﻿namespace Store.Exercises.Exercise4;
 
-internal class Exercise4 : ExerciseBase, IExercise
+internal class Exercise41 : ExerciseBase, IExercise
 {
-    public int Number => 4;
-   
     public string[] Code => ["public class Amplifier",
                          "{",
                          "    public string ModelName = 123;",
@@ -19,7 +17,7 @@ internal class Exercise4 : ExerciseBase, IExercise
                          "var a = new Amplifier();",
                          "Console.WriteLine(a.Volume);"];
 
-    public string[] Variants => [];
+    public string[] Variants => ["69", "123", " ", "Model X"];
 
     public class Amplifier
     {

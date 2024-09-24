@@ -2,7 +2,7 @@
 
 internal interface IExercise
 {    
-    int Number { get; }
+    int Number { get; set;}
     string[] Code { get; }
     string[] Variants { get; }
     bool Check(string text);

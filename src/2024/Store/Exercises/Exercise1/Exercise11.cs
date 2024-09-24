@@ -1,9 +1,7 @@
-﻿namespace Store.Exercises;
+﻿namespace Store.Exercises.Exercise1;
 
-internal class Exercise1 : ExerciseBase, IExercise
-{
-    public int Number => 1;
-    
+internal class Exercise11 : ExerciseBase, IExercise
+{   
     public override TimeSpan NeedTime { get; } = TimeSpan.FromMinutes(3);
     
     public string[] Code => ["public static IEnumerable<int> GetInts()",
@@ -16,14 +14,10 @@ internal class Exercise1 : ExerciseBase, IExercise
                              "Console.WriteLine(GetInts().Last());"
                              ];
 
-    public string[] Variants => ["1", "2", "2 3", "3", "1 2 3", "3 2", "3 2 1"];
+    public string[] Variants => ["2", "3", "2 3", "3 2"];
 
-    public static IEnumerable<int> GetInts()
+    public override string Exercise()
     {
-        yield return 1;
-        yield return 2;
-        Console.WriteLine(3);
+        return "3 2";
     }
-
-    public override string Exercise() => "3 2";
 }

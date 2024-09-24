@@ -1,14 +1,12 @@
-﻿using System.Text;
+using System.Text;
 
-namespace Store.Exercises;
+namespace Store.Exercises.Exercise3;
 
-internal class Exercise3 : ExerciseBase, IExercise
+internal class Exercise34: ExerciseBase, IExercise
 {
-    public int Number => 3;
-
     public string[] Code => ["public class HString",
                              "{",
-                             "    private const int initSize = 64;",
+                             "    private const int initSize = 0;",
                              "    private StringBuilder sb;",
                              "    private void Init(int iniSize) => sb = new StringBuilder(iniSize);",
                              "    public HString() => Init(initSize);",
@@ -19,11 +17,11 @@ internal class Exercise3 : ExerciseBase, IExercise
                              "Console.WriteLine(new HString(256).SB.Capacity);"
                              ];
 
-    public string[] Variants => ["0","64","128", "256"];
+    public string[] Variants => ["16","64","128", "256"];
 
     public class HString
     {
-        private const int initSize = 64;
+        private const int initSize = 0;
         private StringBuilder sb;
         private void Init(int iniSize) => sb = new StringBuilder(iniSize);
         public HString() => Init(initSize);

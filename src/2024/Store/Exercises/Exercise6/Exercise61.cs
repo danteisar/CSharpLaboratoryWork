@@ -1,9 +1,7 @@
-﻿namespace Store.Exercises;
+﻿namespace Store.Exercises.Exercise6;
 
-internal class Exercise6 : ExerciseBase, IExercise
+internal class Exercise61 : ExerciseBase, IExercise
 {
-    public int Number => 6;
-
     public string[] Code => ["public class BaseStorage",
                              "{",
                              "    private readonly List<double> _list = [];",
