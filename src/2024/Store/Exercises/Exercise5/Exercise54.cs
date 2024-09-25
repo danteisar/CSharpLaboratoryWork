@@ -20,7 +20,7 @@ internal class Exercise54: Exercise51, IExercise
                              "}",
                              " ",
                              "var array = [5, 3, 2, 1, 4];",
-                             "Do(array, i.Length - 1, 1)",                            
+                             "Do(array, array.Length - 1, 1)",                            
                              "Console.WriteLine(string.Join(\" \", array.Select(x => x.ToString()).ToArray());"];
 
     public override string Exercise()

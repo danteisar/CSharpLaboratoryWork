@@ -5,7 +5,7 @@ internal class Exercise43: ExerciseBase, IExercise
     public string[] Code => ["public class Amplifier",
                              "{",
                              "    public string ModelName = string.Empty;",
-                             "    public int Volume int Volume = 123",
+                             "    public int Volume = 123",
                              "    public Amplifier() : this(\"Model X\", 69) { }",
                              "    public Amplifier(string modelName, int volume)",
                              "    {",
@@ -17,7 +17,7 @@ internal class Exercise43: ExerciseBase, IExercise
                              "var a = new Amplifier();",
                              "Console.WriteLine(a.Volume);"];
 
-    public string[] Variants => ["69", "123", "\"\"", "Model X"];
+    public string[] Variants => ["69", "123", " ", "Model X"];
 
     public class Amplifier(string modelName, int volume)
     {

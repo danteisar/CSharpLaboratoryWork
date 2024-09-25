@@ -20,7 +20,7 @@ internal class Exercise51 : ExerciseBase, IExercise
                              "}",
                              " ",
                              "var array = [5, 3, 2, 1, 4];",
-                             "Do(array, 0, i.Length - 1)",                            
+                             "Do(array, 0, array.Length - 1)",                            
                              "Console.WriteLine(string.Join(\" \", array.Select(x => x.ToString()).ToArray());"];
 
     public string[] Variants => ["5 3 2 1 4", "1 2 3 5 4", "1 2 3 4 5", "5 1 2 3 4"];

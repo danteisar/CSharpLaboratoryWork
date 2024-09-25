@@ -14,8 +14,8 @@ public class Terminal
 
     public Terminal()
     {
-        if (Console.WindowWidth < 122)
-            Console.WindowWidth = 122;
+        if (Console.WindowWidth < 123)
+            Console.WindowWidth = 123;
 
         _width = Console.WindowWidth - 1;
         _field = new Item[_width + 1, FIELD_HEIGHT + 1];
@@ -496,6 +496,10 @@ public class Terminal
     private void ShowTerminal()
     {
         Console.ForegroundColor = BORDER_COLOR;
+        if (Console.WindowWidth < 123)
+            Console.WindowWidth = 123;
+        if (Console.WindowHeight < HEIGHT)
+            Console.WindowHeight = HEIGHT;
 
         // Horizontal
         for (int i = 1; i < _width; i++)
@@ -592,6 +596,7 @@ public class Terminal
         Save('2', Operations.MoveMode2, 2 + _rightSideInfoPos + 21, HEIGHT - 9 + 1);
         Save('1', Operations.ShowMode1, 2 + _rightSideInfoPos + 29, HEIGHT - 9 + 1);
         Save('2', Operations.ShowMode2, 2 + _rightSideInfoPos + 31, HEIGHT - 9 + 1);
+        Console.SetCursorPosition(0,0);
     }
 
     private void SaveText(string t, int offsetX, int offsetY, Operations op)

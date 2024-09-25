@@ -29,7 +29,7 @@ internal class Exercise61 : ExerciseBase, IExercise
                              " ",
                              "ItemsStorage itemsStorage = new();",
                              "itemsStorage.AddAll([1, 2, 3]);",
-                             "Console.WriteLine(itemsStorage.Count);"];
+                             "Console.WriteLine(itemsStorage.Amount);"];
 
     public string[] Variants => ["0", "3", "6", "9"];
 

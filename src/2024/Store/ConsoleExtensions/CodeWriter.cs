@@ -92,32 +92,45 @@ internal static class CodeWriter
         AskMessage("Тогда необходимо решить 6 задачек на время...", false);
         var rnd = new Random();
         List<List<IExercise>> exercises = [[new Exercise11(), new Exercise12(), new Exercise13(), new Exercise14()], 
-                                           [new Exercise21(), new Exercise22(), new Exercise23(), new Exercise24()], 
+                                           [new Exercise21(), new Exercise22(), new Exercise23(), new Exercise24(), new Exercise25(), new Exercise26(), new Exercise27()], 
                                            [new Exercise31(), new Exercise32(), new Exercise33(), new Exercise34()], 
                                            [new Exercise41(), new Exercise42(), new Exercise43(), new Exercise44()], 
                                            [new Exercise51(), new Exercise52(), new Exercise53(), new Exercise54()], 
                                            [new Exercise61(), new Exercise62(), new Exercise63(), new Exercise64()]]; 
-                                            
-        List<IExercise> selected = [];
-        int num = 1;
-        for (int i = 0; i < exercises.Count; i++){
-            var j = rnd.Next(0, exercises[i].Count);
-            exercises[i][j].Number = num++;
-            selected.Add(exercises[i][j]);
-        }                    
         var score = 0;
-        foreach (var exercise in selected) 
+        int count = 0;   
+        while (count++ < 4)                                    
         {
-                score += Write(exercise);
+            AskMessage($"Попытка №{count}", false, 1000);
+            score = 0;
+            List<IExercise> selected = [];
+            int num = 1;
+            for (int i = 0; i < exercises.Count; i++){
+                var j = rnd.Next(0, exercises[i].Count);
+                exercises[i][j].Number = num++;
+                selected.Add(exercises[i][j]);
+            }
+            foreach (var exercise in selected) 
+            {
+                var points = Write(exercise);
+                score += points;
                 if (_showAnswers) 
-                    AskMessage("Ответ:" + exercise.Exercise(), false);
-        } 
+                    AskMessage(points == 1 ? "Верно" : "Правильный ответ: " + exercise.Exercise(), false, 1000);
+            }
+
+            if (score < 6)
+            {
+                 AskMessage("Вы не прошли тест.", false, 1000);
+                 AskMessage($"Количество верных ответов: {score} из 6", false);
+            }
+
+            if (score == 6) 
+                break; 
+        }
 
         var res = score < 6;
         if (res)
         {
-            AskMessage("Вы не прошли тест.", false);
-            AskMessage($"Количество верных ответов: {score} из 6", false);
             AskMessage("Вы можете ознакомится с демонстрацией 5й лабораторной работы.", false);
         }
         else
@@ -174,13 +187,13 @@ internal static class CodeWriter
         if (res)
         {
             Console.Write(text[..count]);
+            Thread.Sleep(delay);
         }
         else
         if (count == 1 && text.Length > 0)
         {
             Console.Write(text[0]);
-        }
-        Thread.Sleep(delay);
+        }        
         WriteCode(text[count..], delay, ref scope);
     }
 
@@ -229,7 +242,7 @@ internal static class CodeWriter
 
     private static int Write(IExercise exercise)
     {
-        int speed = 50;
+        int speed = 15;
         var posy = 1;
         ClearConsole();
         var height = exercise.Code.Length + exercise.Variants.Length + 10;
@@ -241,6 +254,9 @@ internal static class CodeWriter
         ShowVerticalBorder(25, height - 3, 3);
         WriteString(1, height - 2, "Осталось времени: " + exercise.NeedTime.ToString(@"mm\:ss"));
         WriteString(27, height - 2, "Ваш ответ:");
+        var hint = "Arrow Up, Down - выбор варианта";
+         ShowVerticalBorder(Console.WindowWidth - 2 - hint.Length, height - 3, 3);
+        WriteString(Console.WindowWidth - 1 - hint.Length, height - 2, hint);
         AnimateText(1, posy++, [$"Задание #{exercise.Number}"], speed);
         posy++;        
         AnimateText(1, posy++, [$"Что будет выведено на консоль?"], speed);
@@ -249,21 +265,22 @@ internal static class CodeWriter
         {   
             Console.ForegroundColor = FOREGROUND_COLOR;         
             AnimateTextLine(1, posy++ + exercise.Code.Length + 1, ["Варианты ответов:"], speed);
-            AnimateTextLine(1, posy++ + exercise.Code.Length + 1, exercise.Variants, speed);
+            AnimateTextLine(1, posy++ + exercise.Code.Length + 1, exercise.Variants.Select(x=>$"{Array.IndexOf(exercise.Variants, x) + 1}) {x}").ToArray(), speed);
         }
         posy += exercise.Code.Length + exercise.Variants.Length + 2;        
         AnimateTextLine(1, posy++, [], speed); 
         Console.ForegroundColor = FOREGROUND_COLOR_VAR;
-        var answer = InputWait(19, height - 2, exercise.NeedTime, 38, height - 2);          
+        var answer = InputWait(19, height - 2, exercise.NeedTime, 38, height - 2, exercise.Variants);          
         return exercise.Check(answer) ? 1 : 0;
     }
 
-    private static string InputWait(int posX, int posY, TimeSpan period, int x, int y)
+    private static string InputWait(int posX, int posY, TimeSpan period, int x, int y, string[] variants = null)
     {
         ConsoleKeyInfo cki;
         var dt = DateTime.Now;
         var sb = new StringBuilder(10);
-        var sb2 = new StringBuilder(10);           
+        int index = -1;  
+        var empty = variants is {} ? string.Empty.PadRight(variants.Max(x=>x.Length), ' ') : " ";        
         do 
         {                        
             while (Console.KeyAvailable == false)
@@ -278,18 +295,27 @@ internal static class CodeWriter
             }           
 
             cki = Console.ReadKey(true);
-            if (cki.Key != ConsoleKey.Enter)
+            if (cki.Key == ConsoleKey.Backspace || variants is {} && (cki.Key == ConsoleKey.DownArrow || cki.Key == ConsoleKey.UpArrow))
             {
-                sb.Append(cki.KeyChar);    
-                sb2.Append(' ');           
-            } 
-            if (cki.Key == ConsoleKey.Backspace)
-            {
+                if (cki.Key == ConsoleKey.DownArrow)
+                    index++;
+                if (cki.Key == ConsoleKey.UpArrow)
+                    index--;
+                if (index < 0) index = 0;
+                if (index >= variants.Length) index = variants.Length - 1;
+
+                WriteString(x, y, string.Empty.PadRight(sb.ToString().Length, ' '));
                 sb.Clear();
-                WriteString(x, y, sb2.ToString());
-                sb2.Clear();                
-            }           
-            
+                
+                if (cki.Key != ConsoleKey.Backspace)
+                    sb.Append(variants[index]);
+                        
+            }
+            else if (cki.Key != ConsoleKey.Enter)
+            {
+                sb.Append(cki.KeyChar);          
+            }
+
             WriteString(x, y, sb.ToString());
         } 
         while(cki.Key != ConsoleKey.Enter );

@@ -17,7 +17,7 @@ internal class Exercise41 : ExerciseBase, IExercise
                          "var a = new Amplifier();",
                          "Console.WriteLine(a.Volume);"];
 
-    public string[] Variants => ["69", "123", "\"\"", "Model X"];
+    public string[] Variants => ["69", "123", " ", "Model X"];
 
     public class Amplifier
     {
