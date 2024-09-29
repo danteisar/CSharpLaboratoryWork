@@ -1,7 +1,7 @@
 ﻿using Product.Lab4;
 using Showcase.Lab4;
 
-namespace Store;
+namespace Store.ConsoleWrappers;
 
 internal class Item
 {

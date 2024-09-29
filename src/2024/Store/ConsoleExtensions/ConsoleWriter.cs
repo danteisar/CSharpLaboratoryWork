@@ -1,16 +1,62 @@
 ﻿using Barcode.Lab1;
 using Barcode.Lab3;
+using Store.ConsoleWrappers;
 using static Store.Constants;
 
 namespace Store.ConsoleExtensions;
 
 internal static class ConsoleWriter
 {
+    #region Colors
+
+    public static ConsoleColor BACKGROUND_COLOR = ConsoleColor.White;
+    public static ConsoleColor FOREGROUND_COLOR = ConsoleColor.Black;
+
+    public static ConsoleColor COLOR = ConsoleColor.DarkGreen;
+    public static ConsoleColor ACTIVE_COLOR = ConsoleColor.DarkGreen;
+    public static ConsoleColor HELP_COLOR = ConsoleColor.DarkRed;
+    public static ConsoleColor BORDER_COLOR = ConsoleColor.Black;
+    
+    public static ConsoleColor STORE1 = ConsoleColor.Magenta;    
+    public static ConsoleColor STORE2 = ConsoleColor.Red;
+    public static ConsoleColor STORE3 = ConsoleColor.Black;
+    
+    #endregion
+   
+    public static void SetColors(bool isDark)
+    {
+        if (isDark)
+        {
+            BACKGROUND_COLOR = ConsoleColor.Black;
+            FOREGROUND_COLOR = ConsoleColor.White;
+            COLOR = ConsoleColor.Green;
+            ACTIVE_COLOR = ConsoleColor.Green;
+            HELP_COLOR = ConsoleColor.Red;
+            BORDER_COLOR = ConsoleColor.White;
+            STORE1 = ConsoleColor.Magenta;
+            STORE2 = ConsoleColor.Red;
+            STORE3 = ConsoleColor.White;
+        }
+        else
+        {
+            BACKGROUND_COLOR = ConsoleColor.White;
+            FOREGROUND_COLOR = ConsoleColor.Black;
+            COLOR = ConsoleColor.DarkGreen;
+            ACTIVE_COLOR = ConsoleColor.DarkGreen;
+            HELP_COLOR = ConsoleColor.DarkRed;
+            BORDER_COLOR = ConsoleColor.Black;            
+            STORE1 = ConsoleColor.Magenta;    
+            STORE2 = ConsoleColor.Red;
+            STORE3 = ConsoleColor.Black;
+        }
+    }
+    
     public static bool IsDemo { get; set; } = true;
     public static bool IncludeLoading { get; set; } = true;
 
     public static void WriteChar(int posX, int posY, char c)
     {
+        Console.BackgroundColor = BACKGROUND_COLOR;
         Console.SetCursorPosition(posX, posY);
         Console.Write(c);
         Console.CursorVisible = false;
@@ -83,7 +129,7 @@ internal static class ConsoleWriter
         AnimateText(4, y, ["TERMINAL.EXE"], 50);
         Thread.Sleep(500);
         ClearTerminal();
-        Barcode1 logo = "TERMINAL v.1.0";
+        Barcode1 logo = "TERMINAL v.1.1";
         var text = logo.ToString().Split('\n');
         var posX = (Console.WindowWidth - text[0].Length + 2) / 2;
         var posY = (Console.WindowHeight - 8) / 2;
@@ -96,7 +142,7 @@ internal static class ConsoleWriter
 
     public static void AnimateText(int x, int y, string[] text, int delay)
     {
-        for (int i = 0; i < text[0].Length; i++)
+        for (int i = 0; i < text.Max(x=>x.Length); i++)
         {
             for (int j = 0; j < text.Length; j++)
             {
@@ -201,13 +247,24 @@ internal static class ConsoleWriter
         }
     }
     
-    public static ConsoleKey AskMessage(string text, bool isReadKey = true, int delay = 2000)
+    public static ConsoleKey AskMessage(string[] text, params ConsoleKey[] keys)
+    {
+        ConsoleKey key;
+        do   
+        {
+            key = ShowMessage(text, true);
+        }
+        while (!keys.Contains(key));
+        return key;
+    }
+
+    public static ConsoleKey ShowMessage(string[] text, bool isReadKey, int delay = 2000)
     {
         ClearConsole();
-        var posX = (Console.WindowWidth - text.Length + 2) / 2;
-        var posY = (Console.WindowHeight - 3) / 2;
-        ShowRectangle(posX, posY, text.Length + 2, 3);
-        AnimateText(posX + 1, posY + 1, [text], 5);
+        var posX = (Console.WindowWidth - text.Max(x=>x.Length) + 2) / 2;
+        var posY = (Console.WindowHeight - text.Length + 2) / 2;
+        ShowRectangle(posX, posY,  text.Max(x=>x.Length) + 2, text.Length + 2);
+        AnimateText(posX + 1, posY + 1, text, 5);
         if (!isReadKey) 
         {
             Thread.Sleep(delay);

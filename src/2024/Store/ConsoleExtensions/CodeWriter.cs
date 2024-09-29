@@ -13,13 +13,15 @@ namespace Store.ConsoleExtensions;
 
 internal static class CodeWriter
 {
-    public const ConsoleColor FOREGROUND_COLOR_VAR = ConsoleColor.Blue;   
-    public const ConsoleColor FOREGROUND_COLOR_KEYWORD = ConsoleColor.DarkBlue;
-    public const ConsoleColor FOREGROUND_COLOR_FUNCTION = ConsoleColor.DarkYellow;
-    public const ConsoleColor FOREGROUND_COLOR_CLASSES = ConsoleColor.DarkGreen;
-    public const ConsoleColor FOREGROUND_COLOR_SPECIAL = ConsoleColor.Magenta;
-    public const ConsoleColor CODE_BORDER = ConsoleColor.DarkGray;
-   
+    private const int SPEED = 15;
+    private const int CODE_SPEED = 1;
+    private const ConsoleColor FOREGROUND_COLOR_VAR = ConsoleColor.Blue;   
+    private const ConsoleColor FOREGROUND_COLOR_KEYWORD = ConsoleColor.DarkBlue;
+    private const ConsoleColor FOREGROUND_COLOR_FUNCTION = ConsoleColor.DarkYellow;
+    private const ConsoleColor FOREGROUND_COLOR_CLASSES = ConsoleColor.DarkGreen;
+    private const ConsoleColor FOREGROUND_COLOR_SPECIAL = ConsoleColor.Magenta;
+    private const ConsoleColor CODE_BORDER = ConsoleColor.DarkGray;
+
     private static readonly string[] _keyWords = ["var", 
                                                   "static",
                                                   "public", 
@@ -89,19 +91,20 @@ internal static class CodeWriter
     
     public static bool ShowExercises(bool _showAnswers)
     {
-        AskMessage("Тогда необходимо решить 6 задачек на время...", false);
+        ShowMessage(["Тогда необходимо решить 6 задачек на время..."], false);
         var rnd = new Random();
         List<List<IExercise>> exercises = [[new Exercise11(), new Exercise12(), new Exercise13(), new Exercise14()], 
                                            [new Exercise21(), new Exercise22(), new Exercise23(), new Exercise24(), new Exercise25(), new Exercise26(), new Exercise27()], 
                                            [new Exercise31(), new Exercise32(), new Exercise33(), new Exercise34()], 
-                                           [new Exercise41(), new Exercise42(), new Exercise43(), new Exercise44()], 
+                                           [new Exercise41(), new Exercise42(), new Exercise43(), new Exercise44(), new Exercise45(), new Exercise46()], 
                                            [new Exercise51(), new Exercise52(), new Exercise53(), new Exercise54()], 
                                            [new Exercise61(), new Exercise62(), new Exercise63(), new Exercise64()]]; 
         var score = 0;
-        int count = 0;   
-        while (count++ < 4)                                    
+        int count = 0;  
+        int tryCount = 4;
+        while (count++ < tryCount)                                    
         {
-            AskMessage($"Попытка №{count}", false, 1000);
+            ShowMessage([$"Попытка №{count} из {tryCount}"], false, 1000);
             score = 0;
             List<IExercise> selected = [];
             int num = 1;
@@ -115,28 +118,35 @@ internal static class CodeWriter
                 var points = Write(exercise);
                 score += points;
                 if (_showAnswers) 
-                    AskMessage(points == 1 ? "Верно" : "Правильный ответ: " + exercise.Exercise(), false, 1000);
+                    ShowMessage([points == 1 ? "Верно" : "Правильный ответ: " + exercise.Exercise()], false, 1000);
             }
 
-            if (score < 6)
+            if (score < exercises.Count)
             {
-                 AskMessage("Вы не прошли тест.", false, 1000);
-                 AskMessage($"Количество верных ответов: {score} из 6", false);
+                List<string> message = ["Вы не прошли тест.", $"Количество верных ответов: {score} из {exercises.Count}"];
+
+                if (count < tryCount)
+                {
+                    message.Add("Попытаться еще раз? (y/n)");
+                    if (AskMessage([.. message], ConsoleKey.Y, ConsoleKey.N) != ConsoleKey.Y)
+                        break;
+                }
+                else
+                    ShowMessage([.. message], false, 2000);               
             }
 
-            if (score == 6) 
+            if (score == exercises.Count) 
                 break; 
         }
 
-        var res = score < 6;
+        var res = score < exercises.Count;
         if (res)
         {
-            AskMessage("Вы можете ознакомится с демонстрацией 5й лабораторной работы.", false);
+            ShowMessage(["Вы можете ознакомится с демонстрацией 5й лабораторной работы."], false);
         }
         else
         {
-            AskMessage("Поздравляем! Вы прошли тест. У вас всего 4e лабораторных.", false);
-            AskMessage("Далее можно посмотреть как работает терминал.", false);
+            ShowMessage(["Поздравляем! Вы прошли тест. У вас всего 4e лабораторных.", "Далее можно посмотреть как работает терминал."], false);
         }
         return res;
     }
@@ -240,9 +250,8 @@ internal static class CodeWriter
         return posY;
     }
 
-    private static int Write(IExercise exercise)
-    {
-        int speed = 15;
+    private static int DrawExercise(IExercise exercise, int speed = 20, int codeSpeed = 1)
+    {        
         var posy = 1;
         ClearConsole();
         var height = exercise.Code.Length + exercise.Variants.Length + 10;
@@ -255,12 +264,12 @@ internal static class CodeWriter
         WriteString(1, height - 2, "Осталось времени: " + exercise.NeedTime.ToString(@"mm\:ss"));
         WriteString(27, height - 2, "Ваш ответ:");
         var hint = "Arrow Up, Down - выбор варианта";
-         ShowVerticalBorder(Console.WindowWidth - 2 - hint.Length, height - 3, 3);
+        ShowVerticalBorder(Console.WindowWidth - 2 - hint.Length, height - 3, 3);
         WriteString(Console.WindowWidth - 1 - hint.Length, height - 2, hint);
         AnimateText(1, posy++, [$"Задание #{exercise.Number}"], speed);
         posy++;        
         AnimateText(1, posy++, [$"Что будет выведено на консоль?"], speed);
-        posy = WriteCode(1, posy, exercise.Code);                        
+        posy = WriteCode(1, posy, exercise.Code, codeSpeed);                        
         if (exercise.Variants.Length > 0)
         {   
             Console.ForegroundColor = FOREGROUND_COLOR;         
@@ -270,11 +279,33 @@ internal static class CodeWriter
         posy += exercise.Code.Length + exercise.Variants.Length + 2;        
         AnimateTextLine(1, posy++, [], speed); 
         Console.ForegroundColor = FOREGROUND_COLOR_VAR;
-        var answer = InputWait(19, height - 2, exercise.NeedTime, 38, height - 2, exercise.Variants);          
-        return exercise.Check(answer) ? 1 : 0;
+        return height;
+    }
+    
+    private static int Write(IExercise exercise)
+    {                
+        string answer;
+        var period = exercise.NeedTime;
+        var speed = SPEED;
+        var codeSpeed = CODE_SPEED;
+
+        while (true)
+        {           
+            var height = DrawExercise(exercise, speed, codeSpeed);
+            (answer, period) = InputWait(19, height - 2, period, 38, height - 2, exercise.Variants);   
+            
+            if (!string.IsNullOrEmpty(answer) ||
+                period == TimeSpan.Zero ||  
+                (period != TimeSpan.Zero && AskMessage(["Вы уверены, что хотите оставить пустой ответ? (y/n)"], ConsoleKey.Y, ConsoleKey.N) == ConsoleKey.Y))
+            {
+                return exercise.Check(answer) ? 1 : 0;
+            }
+            speed = 0;
+            codeSpeed = 0;
+        }
     }
 
-    private static string InputWait(int posX, int posY, TimeSpan period, int x, int y, string[] variants = null)
+    private static (string answer, TimeSpan rest)  InputWait(int posX, int posY, TimeSpan period, int x, int y, string[] variants = null)
     {
         ConsoleKeyInfo cki;
         var dt = DateTime.Now;
@@ -289,7 +320,7 @@ internal static class CodeWriter
                 WriteString(posX, posY, rest.ToString(@"mm\:ss"));    
                 
                 if (rest.TotalMilliseconds <= 0) 
-                    return sb.ToString(); 
+                    return (sb.ToString(), TimeSpan.Zero); 
 
                 Thread.Sleep(100);
             }           
@@ -314,11 +345,12 @@ internal static class CodeWriter
             else if (cki.Key != ConsoleKey.Enter)
             {
                 sb.Append(cki.KeyChar);          
-            }
+            }            
 
             WriteString(x, y, sb.ToString());
         } 
-        while(cki.Key != ConsoleKey.Enter );
-        return sb.ToString();
+        while(cki.Key != ConsoleKey.Enter);
+
+        return (sb.ToString(), period - (DateTime.Now - dt));
     }
 }

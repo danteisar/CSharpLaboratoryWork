@@ -1,4 +1,4 @@
-﻿namespace Store;
+﻿namespace Store.ConsoleWrappers;
 
 public enum Operations
 {

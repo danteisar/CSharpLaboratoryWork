@@ -1,6 +1,7 @@
 ﻿using static Store.Constants;
+using static Store.ConsoleExtensions.ConsoleWriter;
 
-namespace Store;
+namespace Store.ConsoleWrappers;
 
 internal class Customer
 {
@@ -24,7 +25,7 @@ internal class Customer
     {
         Item.X = X;
         Item.Y = Y;
-        Item.Char = Constants.OPERATOR;
+        Item.Char = OPERATOR;
         Item.Color = COLOR;
         Item.Product = null;
         Item.Store = null;
@@ -37,9 +38,11 @@ internal class Customer
 
     public void Write(char c, ConsoleColor color)
     {
-        Console.ForegroundColor = color;
+        Console.ForegroundColor = FOREGROUND_COLOR;
+        Console.BackgroundColor = color;
         Console.SetCursorPosition(X, Y);
         Console.CursorVisible = false;
         Console.Write(c);
+        Console.BackgroundColor = BACKGROUND_COLOR;
     }
 }

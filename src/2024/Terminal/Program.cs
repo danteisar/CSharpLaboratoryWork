@@ -1,10 +1,7 @@
 ﻿using Store;
 
 var terminal = new Terminal();
-while (terminal.CanRun)
-{
-    terminal.Run();
-}
+terminal.Run();
 
 Console.ResetColor();
 Console.Clear();

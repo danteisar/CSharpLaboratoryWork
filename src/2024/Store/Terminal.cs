@@ -5,6 +5,7 @@ using System.Text;
 using static Store.ConsoleExtensions.ConsoleWriter;
 using static Store.ConsoleExtensions.CodeWriter;
 using static Store.Constants;
+using Store.ConsoleWrappers;
 
 namespace Store;
 
@@ -21,7 +22,7 @@ public class Terminal
         _field = new Item[_width + 1, FIELD_HEIGHT + 1];
         _customer = new Customer();
 
-        _rightSideInfoPos = _width * 3 / 4 - 6;
+        _rightSideInfoPos = _width - 36;
         _storeIdPos = (_rightSideInfoPos + 2 + 4, FIELD_HEIGHT + 3);
         _storeNamePos = (_rightSideInfoPos + 2 + 6, FIELD_HEIGHT + 4);
         _storeCodePos = (_rightSideInfoPos + 2 + 6, FIELD_HEIGHT + 5);
@@ -29,10 +30,6 @@ public class Terminal
         _selectedNamePos = (8 + _rightSideInfoPos / 2, HEIGHT - 1);
 
         _operations = [];
-
-        CanRun = true;
-
-        Init();
     }
 
     private readonly int _width;
@@ -42,14 +39,14 @@ public class Terminal
     private readonly Item[,] _field;
     private readonly List<Item> _operations;
     private readonly Customer _customer;
+    private Operations _currentOperation = Operations.None;
     private readonly int _rightSideInfoPos;
     private readonly (int x, int y) _storeIdPos;
     private readonly (int x, int y) _selectedIdPos;
     private readonly (int x, int y) _storeNamePos;
     private readonly (int x, int y) _storeCodePos;
-    private readonly (int x, int y) _selectedNamePos;
-
-    public bool CanRun { get; private set; }
+    private readonly (int x, int y) _selectedNamePos;   
+    private const string WAS_ON_LAST_LESSON = "19.09.2024";
 
     #endregion
 
@@ -125,15 +122,12 @@ public class Terminal
         }
 
     }
-
-    public void Run()
+    
+    private bool GetInput(ref ConsoleKeyInfo cki, ref bool canRestore)
     {
-        var key = Console.ReadKey(true);
-        var e = _field[_customer.X, _customer.Y];
-        (int x, int y) pos = (_customer.X, _customer.Y);
-        bool canRestore = true;
+        cki = Console.ReadKey(true);
 
-        switch (key.Key)
+        switch (cki.Key)
         {
             case ConsoleKey.A:
             case ConsoleKey.LeftArrow:
@@ -182,25 +176,55 @@ public class Terminal
                 canRestore = false;
                 break;
             case ConsoleKey.Z:
-                if (key.Modifiers == ConsoleModifiers.Shift)
-                    IncludeLoading = true;
-                Init();
-                return;
-            case ConsoleKey.Q:
-                CanRun = false;
-                return;
+                if (cki.Modifiers == (ConsoleModifiers.Shift | ConsoleModifiers.Alt))
+                    IsDemo = true;            
+                else if (cki.Modifiers == ConsoleModifiers.Shift)
+                    IncludeLoading = true; 
+                else
+                    Init();    
+                break;
+            case ConsoleKey.Q:                            
+                return true;
         }
+        return false;
+    }
+    
+    public void Run()
+    {
+        ConsoleKeyInfo cki = default;
+        while(true)
+        {       
+            if (IsDemo || IncludeLoading)
+                if (Init()) return;
 
-        if (!CanRun) return;
+            var e = _field[_customer.X, _customer.Y];
+            (int x, int y) pos = (_customer.X, _customer.Y);
+            bool canRestore = true;
 
-        RestoreChar(pos);
+            while (Console.KeyAvailable == false)
+            {
+                if (_currentOperation != Operations.None)
+                    VisualizeOperation(_currentOperation);                
 
-        if (canRestore)
-            RestoreChar(e);
+                Thread.Sleep(100);
 
-        WriteCustomer();
+                ShowOperation(_currentOperation, HELP_COLOR);
 
-        WriteProductInfo(_isFull);
+                _currentOperation = Operations.None;
+            }        
+
+            if (GetInput(ref cki, ref canRestore))
+                return;
+
+            RestoreChar(pos);
+
+            if (canRestore)
+                RestoreChar(e);
+
+            WriteCustomer();
+
+            WriteProductInfo(_isFull);                
+        } 
     }
 
     #endregion
@@ -554,6 +578,7 @@ public class Terminal
         WriteChar(_rightSideInfoPos / 2, HEIGHT - 1, IV);
         WriteChar(_rightSideInfoPos / 2, HEIGHT - 0, LV);
 
+        
         Console.SetCursorPosition(2, FIELD_HEIGHT + 1);
         Console.Write("─ POSITION INFORMATION ─");
         Console.SetCursorPosition(2 + _rightSideInfoPos, FIELD_HEIGHT + 1);
@@ -567,9 +592,9 @@ public class Terminal
 
         int pos = 12;
         Console.ForegroundColor = HELP_COLOR;
-        //                         11111111112222222222333
-        //               012345678901234567890123456789012
-        ShowHelp(pos--, " ─ CONTROLS ─          Z - restart");
+        //                         1111111111222222222233333
+        //               01234567890123456789012345678901235
+        ShowHelp(pos--, " ─ CONTROLS ─         Z - restart");
         ShowHelp(pos--, "                         Q - quit");
         ShowHelp(pos--, "                    1         2  ");//-1
         ShowHelp(pos--, "     ╔───╗        ╔─┬─╗     ╔─┬─╗");//0
@@ -581,7 +606,7 @@ public class Terminal
         ShowHelp(pos--, "     ╔───╗          ╔─╗       ╔─╗");//6
         ShowHelp(pos--, "     │ S │    REMOVE│R│    NEW│N│");//7
         ShowHelp(pos--, "     ╚───╝          ╚─╝       ╚─╝");//8
-
+        
         SaveText(" W ", 5, 0, Operations.MoveW);
         SaveText(" A ", 0, 3, Operations.MoveA);
         SaveText(" S ", 5, 6, Operations.MoveS);
@@ -617,7 +642,7 @@ public class Terminal
         }
     }
 
-    private void VisualizeOperation(Operations o, Action action = null)
+    private void VisualizeOperation(Operations o)
     {
         if (o == Operations.MoveMode1)
         {
@@ -651,15 +676,24 @@ public class Terminal
 
         ShowOperation(o, ACTIVE_COLOR);
 
+        //action?.Invoke();
+
+        //Thread.Sleep(100);
+
+        //ShowOperation(o, HELP_COLOR);
+    }
+    
+    private void VisualizeOperation(Operations o, Action action = null)
+    {
+        _currentOperation = o;
+        ShowOperation(o, ACTIVE_COLOR);
         action?.Invoke();
-
-        Thread.Sleep(100);
-
-        ShowOperation(o, HELP_COLOR);
     }
 
     private void ShowOperation(Operations o, ConsoleColor c)
     {
+        if (o == Operations.None) return;
+
         Console.ForegroundColor = c;
         foreach (var item in _operations.Where(x => x.Operation == o))
         {
@@ -789,50 +823,56 @@ public class Terminal
 
     #region Education
 
-    private static bool _include5th = false; 
+    private bool Init()
+    { 
+        bool include5th = true;  
+        bool include4th = false; 
 
-    private void Init()
-    {
         if (IsDemo)
         {
-            ConsoleKey key;
-            do
-            {
-                key = AskMessage("Вы были 19.09.2024 на лекции? (y/n)");
-            }
-            while (key != ConsoleKey.Y && key != ConsoleKey.N && key != ConsoleKey.Spacebar && key != ConsoleKey.H);
+            ConsoleKey key = AskMessage(["Использовать темную тему? (y/n)"], ConsoleKey.Y, ConsoleKey.N);
+            SetColors(key == ConsoleKey.Y);
+
+            key = AskMessage([$"Вы были {WAS_ON_LAST_LESSON} на лекции? (y/n)"], ConsoleKey.Y, ConsoleKey.N, ConsoleKey.H, ConsoleKey.Spacebar);             
 
             switch (key)
             {
                 case ConsoleKey.Spacebar:
-                    IncludeLoading = false;
-                    _include5th = true;
+                    IncludeLoading = false;                  
                     break;
                 case ConsoleKey.Y:
-                    if (AskMessage("Вы хотите посмотреть, что должен выводить терминал при сдаче лаб? (y/n)") != ConsoleKey.Y)
-                        CanRun = false;
+                    if (AskMessage(["Вы хотите посмотреть, что должен выводить терминал", "при сдаче четырех лабораторных работ? (y/n)"], ConsoleKey.Y, ConsoleKey.N) == ConsoleKey.Y)                       
+                    {
+                        include5th = false; 
+                        include4th = true;
+                    }      
                     else
-                        ShowLab4Demo(true);
-                    return;
+                        return true;                          
+                    break;
                 default:
-                    _include5th = ShowExercises(key == ConsoleKey.H);
+                    include5th = ShowExercises(key == ConsoleKey.H);
                     break;
             }
 
             IsDemo = false;
         }
 
-        if (_include5th)
+        if (include5th)
         {
             ShowLab5Demo();
+            return false;
         }
-        else
+
+        ShowLab4Demo(include4th); 
+        if (AskMessage(["Перезапустить опрос? (y/n)"], ConsoleKey.Y, ConsoleKey.N) == ConsoleKey.Y)
         {
-            ShowLab4Demo(false); 
+            IsDemo = true;
+            return false;
         }
+        return true;      
     }
   
-    private void ShowLab4Demo(bool was)
+    private static void ShowLab4Demo(bool was)
     {
         LoadData(out var store1, out var store2, out var _, out var lab4Data, out var lab4Data2);
 
@@ -843,13 +883,12 @@ public class Terminal
 
         if (was) 
         {
-            Barcode3 barcode3 = "19.09.2024";
+            Barcode3 barcode3 = WAS_ON_LAST_LESSON;
             Console.WriteLine(barcode3);
         }
 
         Console.WriteLine("Press any key to continue...");
         Console.ReadKey(true);
-        CanRun = false;
     }
 
     private void ShowLab5Demo()
