@@ -1,19 +1,17 @@
 namespace Store.Exercises.Exercise4;
 
-internal class Exercise45: ExerciseBase, IExercise
+internal class Exercise45: Exercise41, IExercise
 {
-    public virtual string[] Code => ["public class Amplifier(string modelName = \"\", int volume = 0)",
-                                     "{",
-                                     "    public string ModelName => modelName = \"0\";",
-                                     "    public int Volume => volume = 123;",
-                                     "    public Amplifier() : this(\"Model X\", 69) { }",                          
-                                     "}",
-                                     " ",
-                                     "Console.WriteLine(new Amplifier().Volume);"];
+    public override string[] Code => ["public class Amplifier(string modelName = \"\", int volume = 0)",
+                                      "{",
+                                      "    public string ModelName => modelName = \"0\";",
+                                      "    public int Volume => volume = 123;",
+                                      "    public Amplifier() : this(\"Model X\", 69) { }",                          
+                                      "}"];
 
-    public string[] Variants => ["0", "69", "123", " ", "Model X"];
+    public override string[] TestCode => ["Console.WriteLine(new Amplifier().Volume);"];
 
-    public class Amplifier(string modelName = "", int volume = 0)
+    protected class Amplifier(string modelName = "", int volume = 0)
     {
         public string ModelName => modelName = "0";
         public int Volume => volume = 123;

@@ -2,34 +2,31 @@ using System.Text;
 
 namespace Store.Exercises.Exercise3;
 
-internal class Exercise33: ExerciseBase, IExercise
+internal class Exercise33: Exercise31, IExercise
 {
-    public string[] Code => ["public class HString",
+    public override string[] Code => ["public class HString",
                              "{",
-                             "    private const int initSize = 128;",
+                             "    private const int initSize = 64;",
                              "    private StringBuilder sb;",
                              "    private void Init(int iniSize) => sb = new StringBuilder(iniSize);",
-                             "    public HString() => Init(initSize);",
-                             "    public HString(int iniSize) => Init(initSize);",
+                             "    public HString() => Init(128);",
+                             "    public HString(int iniSize = 256) => Init(initSize);",
                              "    public StringBuilder SB => sb;",
-                             "}",
-                             " ",
-                             "Console.WriteLine(new HString(256).SB.Capacity);"
-                             ];
+                             "}"];
+    
+    public override string[] TestCode => ["Console.WriteLine(new HString().SB.Capacity);"];
 
-    public string[] Variants => ["16","64","128", "256"];
-
-    public class HString
+    public class HString3
     {
-        private const int initSize = 128;
+        private const int initSize = 64;
         private StringBuilder sb;
         private void Init(int iniSize) => sb = new StringBuilder(iniSize);
-        public HString() => Init(initSize);
-        public HString(int iniSize) => Init(initSize);
+        public HString3() => Init(128);
+        public HString3(int iniSize = 256) => Init(initSize);
         public StringBuilder StringBuilder => sb;
     }
     public override string Exercise()
     {        
-        return new HString(256).StringBuilder.Capacity.ToString();
+        return new HString3().StringBuilder.Capacity.ToString();
     }
 }

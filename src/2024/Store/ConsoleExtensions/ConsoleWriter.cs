@@ -15,6 +15,8 @@ internal static class ConsoleWriter
     public static ConsoleColor COLOR = ConsoleColor.DarkGreen;
     public static ConsoleColor ACTIVE_COLOR = ConsoleColor.DarkGreen;
     public static ConsoleColor HELP_COLOR = ConsoleColor.DarkRed;
+    public static ConsoleColor ERROR_COLOR = ConsoleColor.Red;
+    public static ConsoleColor ERROR_FOREGROUND_COLOR = ConsoleColor.White;
     public static ConsoleColor BORDER_COLOR = ConsoleColor.Black;
     
     public static ConsoleColor STORE1 = ConsoleColor.Magenta;    
@@ -32,6 +34,7 @@ internal static class ConsoleWriter
             COLOR = ConsoleColor.Green;
             ACTIVE_COLOR = ConsoleColor.Green;
             HELP_COLOR = ConsoleColor.Red;
+            ERROR_COLOR = ConsoleColor.DarkRed;
             BORDER_COLOR = ConsoleColor.White;
             STORE1 = ConsoleColor.Magenta;
             STORE2 = ConsoleColor.Red;
@@ -44,6 +47,7 @@ internal static class ConsoleWriter
             COLOR = ConsoleColor.DarkGreen;
             ACTIVE_COLOR = ConsoleColor.DarkGreen;
             HELP_COLOR = ConsoleColor.DarkRed;
+            ERROR_COLOR = ConsoleColor.Red;
             BORDER_COLOR = ConsoleColor.Black;            
             STORE1 = ConsoleColor.Magenta;    
             STORE2 = ConsoleColor.Red;
@@ -56,7 +60,7 @@ internal static class ConsoleWriter
 
     public static void WriteChar(int posX, int posY, char c)
     {
-        Console.BackgroundColor = BACKGROUND_COLOR;
+        //Console.BackgroundColor = BACKGROUND_COLOR;
         Console.SetCursorPosition(posX, posY);
         Console.Write(c);
         Console.CursorVisible = false;
@@ -81,10 +85,10 @@ internal static class ConsoleWriter
         WriteChar(pos.x, pos.y, EMPTY);
     }
 
-    public static void ClearConsole()
+    public static void ClearConsole(ConsoleColor? consoleColor = null, ConsoleColor? foreground = null)
     {
-        Console.BackgroundColor = BACKGROUND_COLOR;
-        Console.ForegroundColor = FOREGROUND_COLOR;
+        Console.BackgroundColor = consoleColor ?? BACKGROUND_COLOR;
+        Console.ForegroundColor = foreground ?? FOREGROUND_COLOR;
         Console.Clear();
         Console.CursorVisible = true;
     }
@@ -247,20 +251,31 @@ internal static class ConsoleWriter
         }
     }
     
-    public static ConsoleKey AskMessage(string[] text, params ConsoleKey[] keys)
-    {
-        ConsoleKey key;
+    public static ConsoleKeyInfo ErrorMessage(string[] text, params ConsoleKey[] keys)
+    {        
+        ConsoleKeyInfo key;
         do   
         {
-            key = ShowMessage(text, true);
+            key = ShowMessage(text, true, ERROR_COLOR, ERROR_FOREGROUND_COLOR);
         }
-        while (!keys.Contains(key));
+        while (keys.Length > 0 && !keys.Contains(key.Key));
         return key;
     }
 
-    public static ConsoleKey ShowMessage(string[] text, bool isReadKey, int delay = 2000)
+    public static ConsoleKeyInfo AskMessage(string[] text, params ConsoleKey[] keys)
     {
-        ClearConsole();
+        ConsoleKeyInfo key;
+        do   
+        {
+            key = ShowMessage(text, true, BACKGROUND_COLOR, FOREGROUND_COLOR);
+        }
+        while (keys.Length > 0 && !keys.Contains(key.Key));
+        return key;
+    }
+
+    public static ConsoleKeyInfo ShowMessage(string[] text, bool isReadKey, ConsoleColor consoleColor, ConsoleColor foreground, int delay = 2000)
+    {
+        ClearConsole(consoleColor, foreground);
         var posX = (Console.WindowWidth - text.Max(x=>x.Length) + 2) / 2;
         var posY = (Console.WindowHeight - text.Length + 2) / 2;
         ShowRectangle(posX, posY,  text.Max(x=>x.Length) + 2, text.Length + 2);
@@ -268,8 +283,8 @@ internal static class ConsoleWriter
         if (!isReadKey) 
         {
             Thread.Sleep(delay);
-            return ConsoleKey.None;
+            return default;
         }
-        return Console.ReadKey(true).Key;
+        return Console.ReadKey(true);
     }
 }

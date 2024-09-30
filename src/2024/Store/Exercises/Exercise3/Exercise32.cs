@@ -2,34 +2,29 @@ using System.Text;
 
 namespace Store.Exercises.Exercise3;
 
-internal class Exercise32: ExerciseBase, IExercise
+internal class Exercise32: Exercise31, IExercise
 {
-    public string[] Code => ["public class HString",
-                             "{",
-                             "    private const int initSize = 64;",
-                             "    private StringBuilder sb;",
-                             "    private void Init(int iniSize) => sb = new StringBuilder(iniSize);",
-                             "    public HString() => Init(initSize);",
-                             "    public HString(int iniSize) => Init(iniSize);",
-                             "    public StringBuilder SB => sb;",
-                             "}",
-                             " ",
-                             "Console.WriteLine(new HString(256).SB.Capacity);"
-                             ];
+    public override string[] Code => ["public class HString",
+                                      "{",
+                                      "    private const int initSize = 64;",
+                                      "    private StringBuilder sb;",
+                                      "    private void Init(int iniSize) => sb = new StringBuilder(iniSize);",
+                                      "    public HString() => Init(initSize);",
+                                      "    public HString(int iniSize) => Init(iniSize);",
+                                      "    public StringBuilder SB => sb;",
+                                      "}"];
 
-    public string[] Variants => ["16","64","128", "256"];
-
-    public class HString
+    public class HString2
     {
         private const int initSize = 64;
         private StringBuilder sb;
         private void Init(int iniSize) => sb = new StringBuilder(iniSize);
-        public HString() => Init(initSize);
-        public HString(int iniSize) => Init(iniSize);
+        public HString2() => Init(initSize);
+        public HString2(int iniSize) => Init(iniSize);
         public StringBuilder StringBuilder => sb;
     }
     public override string Exercise()
     {        
-        return new HString(256).StringBuilder.Capacity.ToString();
+        return new HString2(256).StringBuilder.Capacity.ToString();
     }
 }

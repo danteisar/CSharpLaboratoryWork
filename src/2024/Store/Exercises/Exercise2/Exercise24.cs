@@ -1,10 +1,7 @@
 namespace Store.Exercises.Exercise2;
 
-internal class Exercise24: ExerciseBase, IExercise
+internal class Exercise24: Exercise21, IExercise
 {
-    public string[] Code => ["Console.WriteLine(~-1 >> 1);"];
-
-    public string[] Variants => ["-8", "-4", "-1", "0", "1", "4", "8"];
-
+    public override string[] TestCode => ["Console.WriteLine(~-1 >> 1);"];
     public override string Exercise() => (~-1 >> 1).ToString();
 }

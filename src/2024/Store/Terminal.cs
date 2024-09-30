@@ -183,14 +183,15 @@ public class Terminal
                 else
                     Init();    
                 break;
-            case ConsoleKey.Q:                            
+            case ConsoleKey.Q:  
+            case ConsoleKey.Escape:                          
                 return true;
         }
         return false;
     }
     
     public void Run()
-    {
+    {        
         ConsoleKeyInfo cki = default;
         while(true)
         {       
@@ -830,18 +831,20 @@ public class Terminal
 
         if (IsDemo)
         {
-            ConsoleKey key = AskMessage(["Использовать темную тему? (y/n)"], ConsoleKey.Y, ConsoleKey.N);
-            SetColors(key == ConsoleKey.Y);
+            ConsoleKeyInfo key = AskMessage(["Использовать темную тему? (y/n)"], ConsoleKey.Y, ConsoleKey.N);
+            SetColors(key.Key == ConsoleKey.Y);
 
             key = AskMessage([$"Вы были {WAS_ON_LAST_LESSON} на лекции? (y/n)"], ConsoleKey.Y, ConsoleKey.N, ConsoleKey.H, ConsoleKey.Spacebar);             
 
-            switch (key)
+            switch (key.Key)
             {
                 case ConsoleKey.Spacebar:
                     IncludeLoading = false;                  
                     break;
                 case ConsoleKey.Y:
-                    if (AskMessage(["Вы хотите посмотреть, что должен выводить терминал", "при сдаче четырех лабораторных работ? (y/n)"], ConsoleKey.Y, ConsoleKey.N) == ConsoleKey.Y)                       
+                    if (AskMessage(["Вы хотите посмотреть, что должен выводить терминал", 
+                                    "    при сдаче четырех лабораторных работ? (y/n)"], 
+                                    ConsoleKey.Y, ConsoleKey.N).Key == ConsoleKey.Y)                       
                     {
                         include5th = false; 
                         include4th = true;
@@ -849,8 +852,12 @@ public class Terminal
                     else
                         return true;                          
                     break;
+                case ConsoleKey.H: 
                 default:
-                    include5th = ShowExercises(key == ConsoleKey.H);
+                    if (key.Key == ConsoleKey.H && key.Modifiers == (ConsoleModifiers.Shift | ConsoleModifiers.Alt))
+                        Test();
+                        
+                    include5th = ShowExercises(key.Key == ConsoleKey.H && key.Modifiers.HasFlag(ConsoleModifiers.Shift));
                     break;
             }
 
@@ -864,7 +871,7 @@ public class Terminal
         }
 
         ShowLab4Demo(include4th); 
-        if (AskMessage(["Перезапустить опрос? (y/n)"], ConsoleKey.Y, ConsoleKey.N) == ConsoleKey.Y)
+        if (AskMessage(["Перезапустить опрос? (y/n)"], ConsoleKey.Y, ConsoleKey.N).Key == ConsoleKey.Y)
         {
             IsDemo = true;
             return false;
