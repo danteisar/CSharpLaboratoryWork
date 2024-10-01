@@ -15,7 +15,7 @@ internal class Exercise05 : ExerciseBase, IExercise
     public override string Exercise()
     {
         var raw = Do();
-        var tmp = raw.Take(2).Select(x => x * 1);
+        var tmp = raw.Take(2).Select(x => x * 2);
         return tmp.FirstOrDefault().ToString();
     }
 

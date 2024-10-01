@@ -16,7 +16,7 @@ internal static class ConsoleWriter
     public static ConsoleColor ACTIVE_COLOR = ConsoleColor.DarkGreen;
     public static ConsoleColor HELP_COLOR = ConsoleColor.DarkRed;
     public static ConsoleColor ERROR_COLOR = ConsoleColor.Red;
-    public static ConsoleColor ERROR_FOREGROUND_COLOR = ConsoleColor.White;
+    public static ConsoleColor WHITE_FOREGROUND_COLOR = ConsoleColor.White;
     public static ConsoleColor BORDER_COLOR = ConsoleColor.Black;
     
     public static ConsoleColor STORE1 = ConsoleColor.Magenta;    
@@ -56,6 +56,7 @@ internal static class ConsoleWriter
     }
     
     public static bool IsDemo { get; set; } = true;
+    public static bool IsCredit { get; set; } = false;
     public static bool IncludeLoading { get; set; } = true;
 
     public static void WriteChar(int posX, int posY, char c)
@@ -255,7 +256,7 @@ internal static class ConsoleWriter
         ConsoleKeyInfo key;
         do   
         {
-            key = ShowMessage(text, true, ERROR_COLOR, ERROR_FOREGROUND_COLOR);
+            key = ShowMessage(text, true, ERROR_COLOR, WHITE_FOREGROUND_COLOR);
         }
         while (keys.Length > 0 && !keys.Contains(key.Key));
         return key;
@@ -270,6 +271,12 @@ internal static class ConsoleWriter
         }
         while (keys.Length > 0 && !keys.Contains(key.Key));
         return key;
+    }
+
+    public static bool AskMessage(string text)
+    {
+        text += " (y/n)";
+        return AskMessage([text], ConsoleKey.Y, ConsoleKey.N).Key == ConsoleKey.Y;
     }
 
     public static bool AskMessage(string[] text)

@@ -109,24 +109,12 @@ internal static class CodeWriter
     
     public static void Test()
     {
-
-        AskMessage(["ЗАДАНИЕ 1", new Exercise11().Exercise(), new Exercise12().Exercise(), new Exercise13().Exercise(), new Exercise14().Exercise(),
-            new Exercise15().Exercise(), new Exercise16().Exercise(), new Exercise17().Exercise()], ConsoleKey.Spacebar);
-
-        AskMessage(["ЗАДАНИЕ 2", new Exercise21().Exercise(), new Exercise22().Exercise(), new Exercise23().Exercise(), new Exercise24().Exercise(), 
-            new Exercise25().Exercise(), new Exercise26().Exercise(), new Exercise27().Exercise()], ConsoleKey.Spacebar);
-        
-        AskMessage(["ЗАДАНИЕ 3", new Exercise31().Exercise(), new Exercise32().Exercise(), new Exercise33().Exercise(), new Exercise34().Exercise(),
-            new Exercise35().Exercise(), new Exercise36().Exercise(), new Exercise37().Exercise()], ConsoleKey.Spacebar);
-
-        AskMessage(["ЗАДАНИЕ 4", new Exercise41().Exercise(), new Exercise42().Exercise(), new Exercise43().Exercise(), new Exercise44().Exercise(),
-            new Exercise45().Exercise(), new Exercise46().Exercise(), new Exercise01().Exercise()], ConsoleKey.Spacebar);
-
-        AskMessage(["ЗАДАНИЕ 5", new Exercise51().Exercise(), new Exercise52().Exercise(), new Exercise53().Exercise(), new Exercise54().Exercise(),
-            new Exercise55().Exercise(), new Exercise02().Exercise(), new Exercise03().Exercise()], ConsoleKey.Spacebar);
-
-        AskMessage(["ЗАДАНИЕ 6", new Exercise61().Exercise(), new Exercise62().Exercise(), new Exercise63().Exercise(), new Exercise64().Exercise(),
-            new Exercise04().Exercise(), new Exercise05().Exercise(), new Exercise06().Exercise()], ConsoleKey.Spacebar);
+        int number = 1;
+        foreach (var list in HelpExercise()){
+            List<string> exercises = ["ЗАДАНИЕ " + number++]; 
+            exercises.AddRange(list.Select(x=>x.Exercise()));            
+            AskMessage([.. exercises], ConsoleKey.Spacebar);
+        }  
     }
 
     private static bool HelpExercise(IExercise exercise, bool showAnswers, ref int score)
@@ -138,7 +126,7 @@ internal static class CodeWriter
 
         if (showAnswers) 
             ShowMessage([points == 1 ? "Верно" : "Правильный ответ: " + exercise.Exercise()], 
-                false, points == 1 ? COLOR : ERROR_COLOR, points == 1 ? FOREGROUND_COLOR : ERROR_FOREGROUND_COLOR, 1000);
+                false, points == 1 ? COLOR : ERROR_COLOR, points == 1 ? FOREGROUND_COLOR : WHITE_FOREGROUND_COLOR, 1000);
         
         return giveUp;
     }
@@ -169,12 +157,15 @@ internal static class CodeWriter
                 [new Exercise61(), new Exercise62(), new Exercise63(), new Exercise64(), new Exercise04(), new Exercise05(), new Exercise06()]];
     }
     
-    private static bool ShowExercises(List<List<IExercise>> exercises, int score)
+    private static bool ShowExercises(List<List<IExercise>> exercises, int score, bool showRes)
     {
         var res = score < exercises.Count;
+        
+        if (!showRes) return res;
+
         if (res)
         {
-            ShowMessage(["Вы можете ознакомится с демонстрацией 5й лабораторной работы."], false, BACKGROUND_COLOR, FOREGROUND_COLOR);
+            ShowMessage(["Вы можете ознакомится с демонстрацией 5й лабораторной работы."], false, BACKGROUND_COLOR, FOREGROUND_COLOR);            
         }
         else
         {
@@ -236,7 +227,7 @@ internal static class CodeWriter
                     return (true, false);
             }
             else
-                ShowMessage([.. message], false, ERROR_COLOR, ERROR_FOREGROUND_COLOR,  2000);               
+                ShowMessage([.. message], false, ERROR_COLOR, WHITE_FOREGROUND_COLOR,  2000);               
         }
 
         if (score == exercises.Count) 
@@ -254,13 +245,13 @@ internal static class CodeWriter
         return titles[number % 100 > 4 && number % 100 < 20 ? 2 : _cases[(number % 10 < 5) ? number % 10 : 5]];
     }
 
-    public static bool ShowExercises(bool showAnswers, int tryCount = 4)
+    public static bool ShowExercises(bool showAnswers, int tryCount = 4, bool showRes = true)
     {        
         var exercises = HelpExercise(); 
         var score = 0;
         int count = 0;
 
-        ShowMessage([$"Тогда необходимо решить {exercises.Count} {GenerateDeclension(exercises.Count, "задачку","задачки","задачек")} на время..."], 
+        ShowMessage([$"Необходимо решить {exercises.Count} {GenerateDeclension(exercises.Count, "задачу","задачи","задач")} на время..."], 
             false, BACKGROUND_COLOR, FOREGROUND_COLOR);
 
         while (count++ < tryCount)                                    
@@ -284,7 +275,7 @@ internal static class CodeWriter
                 continue;
         }
 
-        return ShowExercises(exercises, score);
+        return ShowExercises(exercises, score, showRes);
     }
 
     private static void ShowLinesOfCode(int offsetX, int offsetY, int count)
@@ -438,11 +429,11 @@ internal static class CodeWriter
             }
             else if (!esc && tmp < 0)
             {
-                ShowMessage(["Нет такого варианта ответа :("], false, ERROR_COLOR, ERROR_FOREGROUND_COLOR, 1000);
+                ShowMessage(["Нет такого варианта ответа :("], false, ERROR_COLOR, WHITE_FOREGROUND_COLOR, 1000);
             }
             else if (!esc && !string.IsNullOrEmpty(answer) ||
                 period == TimeSpan.Zero ||
-                (!esc && period != TimeSpan.Zero && AskMessage(["Вы уверены, что хотите оставить пустой ответ? (y/n)"])))
+                (!esc && period != TimeSpan.Zero && AskMessage(["Вы уверены, что хотите оставить пустой ответ?"])))
             {
                 return (tmp, false);
             }

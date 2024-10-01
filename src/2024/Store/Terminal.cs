@@ -827,20 +827,18 @@ public class Terminal
     private bool Init()
     { 
         bool include5th = true;  
-        bool include4th = false; 
+        bool include4th = false;         
+
+        var key = AskMessage(["Использовать темную тему? (y/n)"], ConsoleKey.Y, ConsoleKey.N);
+        SetColors(key.Key == ConsoleKey.Y);
+        SetMode(key);        
 
         if (IsDemo)
-        {          
-            SetColors(AskMessage(["Использовать темную тему?"]));
-
-            var key = AskMessage([$"Вы были {WAS_ON_LAST_LESSON} на лекции? (y/n)"], ConsoleKey.Y, ConsoleKey.N, ConsoleKey.H, ConsoleKey.Spacebar);             
-
+        { 
+            key = AskMessage([$"Вы были {WAS_ON_LAST_LESSON} на лекции? (y/n)"], ConsoleKey.Y, ConsoleKey.N);
             switch (key.Key)
             {
-                case ConsoleKey.Spacebar:
-                    IncludeLoading = false;                  
-                    break;
-                case ConsoleKey.Y:
+                case ConsoleKey.Y:               
                     if (AskMessage(["Вы хотите посмотреть, что должен выводить терминал", 
                                     "    при сдаче четырех лабораторных работ?"]))                    
                     {
@@ -850,16 +848,29 @@ public class Terminal
                     else
                         return true;                          
                     break;
-                case ConsoleKey.H: 
-                default:
-                    if (key.Key == ConsoleKey.H && key.Modifiers == (ConsoleModifiers.Shift | ConsoleModifiers.Alt))
-                        Test();
-                        
-                    include5th = ShowExercises(key.Key == ConsoleKey.H && key.Modifiers.HasFlag(ConsoleModifiers.Shift));
+                default: 
+                    IncludeLoading = true;
+                    include5th = PassTheTest(key);
                     break;
             }
-
             IsDemo = false;
+        }
+        else if (IsCredit)
+        {
+            key = AskMessage([$"Вы готовы приступить к практическому заданию? (y)"], ConsoleKey.Y);
+            if (!PassTheTest(key, 100, false))
+            {
+                ShowMessage(["Вы успешно прошли тестирование!"], true, COLOR, WHITE_FOREGROUND_COLOR);
+            }
+            else
+            {
+                ShowMessage(["            Поздравляем!",
+                             "Вы не прошли тест аж за 100 попыток!",
+                             "       Или вы просто сдались!?"], true, ERROR_COLOR, WHITE_FOREGROUND_COLOR);
+            }
+                
+
+            return !AskMessage("Перезапустить тестирование?");
         }
 
         if (include5th)
@@ -869,14 +880,42 @@ public class Terminal
         }
 
         ShowLab4Demo(include4th); 
-        if (AskMessage(["Перезапустить опрос?"]))
+        if (AskMessage("Перезапустить опрос?"))
         {
             IsDemo = true;
             return false;
         }
         return true;      
     }
-  
+    
+    private static bool PassTheTest(ConsoleKeyInfo key, int tryCount = 4, bool showRes = true)
+    {
+        if (key.Modifiers == (ConsoleModifiers.Shift | ConsoleModifiers.Alt))
+            Test();
+                        
+        return ShowExercises(key.Modifiers.HasFlag(ConsoleModifiers.Shift), tryCount, showRes);
+    }
+
+    private static void SetMode(ConsoleKeyInfo key)
+    {
+        if (key.Modifiers == (ConsoleModifiers.Shift | ConsoleModifiers.Alt))
+        {
+            IncludeLoading = false;
+            IsDemo = false;
+            IsCredit = false;       
+        }
+        else if (key.Modifiers.HasFlag(ConsoleModifiers.Shift))
+        {
+             IsDemo = false;
+             IsCredit = true;             
+        }    
+        else if (key.Modifiers.HasFlag(ConsoleModifiers.Alt))
+        {
+            IsDemo = true;
+            IsCredit = false;  
+        }    
+    }
+    
     private static void ShowLab4Demo(bool was)
     {
         LoadData(out var store1, out var store2, out var _, out var lab4Data, out var lab4Data2);
