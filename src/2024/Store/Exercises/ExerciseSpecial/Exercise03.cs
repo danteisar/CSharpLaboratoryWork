@@ -3,7 +3,7 @@ namespace Store.Exercises.ExerciseSpecial;
 internal class Exercise03 : ExerciseBase, IExercise
 {
     public virtual string[] Code => ["var list = new List<string> { \"A1\", \"B1\", \"B2\"};",
-                                     "var filteredList = list.Where(x => x.StartsWith(\"B\"));",
+                                     "var filteredList = list.Where(x => x.StartsWith('B'));",
                                      "list.Remove(\"B1\");"];
     public virtual string[] TestCode => ["Console.WriteLine(isNull);"];
 
@@ -12,7 +12,7 @@ internal class Exercise03 : ExerciseBase, IExercise
     public override string Exercise()
     {
         var list = new List<string> { "A1", "B1", "B2"};
-        var filteredList = list.Where(x => x.StartsWith("B"));
+        var filteredList = list.Where(x => x.StartsWith('B'));
         list.Remove("B1");
         return filteredList.Count().ToString();
     }

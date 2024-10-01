@@ -60,7 +60,6 @@ internal static class ConsoleWriter
 
     public static void WriteChar(int posX, int posY, char c)
     {
-        //Console.BackgroundColor = BACKGROUND_COLOR;
         Console.SetCursorPosition(posX, posY);
         Console.Write(c);
         Console.CursorVisible = false;
@@ -271,6 +270,12 @@ internal static class ConsoleWriter
         }
         while (keys.Length > 0 && !keys.Contains(key.Key));
         return key;
+    }
+
+    public static bool AskMessage(string[] text)
+    {
+        text[^1] += " (y/n)";
+        return AskMessage(text, ConsoleKey.Y, ConsoleKey.N).Key == ConsoleKey.Y;
     }
 
     public static ConsoleKeyInfo ShowMessage(string[] text, bool isReadKey, ConsoleColor consoleColor, ConsoleColor foreground, int delay = 2000)

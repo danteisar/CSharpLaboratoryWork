@@ -830,11 +830,10 @@ public class Terminal
         bool include4th = false; 
 
         if (IsDemo)
-        {
-            ConsoleKeyInfo key = AskMessage(["Использовать темную тему? (y/n)"], ConsoleKey.Y, ConsoleKey.N);
-            SetColors(key.Key == ConsoleKey.Y);
+        {          
+            SetColors(AskMessage(["Использовать темную тему?"]));
 
-            key = AskMessage([$"Вы были {WAS_ON_LAST_LESSON} на лекции? (y/n)"], ConsoleKey.Y, ConsoleKey.N, ConsoleKey.H, ConsoleKey.Spacebar);             
+            var key = AskMessage([$"Вы были {WAS_ON_LAST_LESSON} на лекции? (y/n)"], ConsoleKey.Y, ConsoleKey.N, ConsoleKey.H, ConsoleKey.Spacebar);             
 
             switch (key.Key)
             {
@@ -843,8 +842,7 @@ public class Terminal
                     break;
                 case ConsoleKey.Y:
                     if (AskMessage(["Вы хотите посмотреть, что должен выводить терминал", 
-                                    "    при сдаче четырех лабораторных работ? (y/n)"], 
-                                    ConsoleKey.Y, ConsoleKey.N).Key == ConsoleKey.Y)                       
+                                    "    при сдаче четырех лабораторных работ?"]))                    
                     {
                         include5th = false; 
                         include4th = true;
@@ -871,7 +869,7 @@ public class Terminal
         }
 
         ShowLab4Demo(include4th); 
-        if (AskMessage(["Перезапустить опрос? (y/n)"], ConsoleKey.Y, ConsoleKey.N).Key == ConsoleKey.Y)
+        if (AskMessage(["Перезапустить опрос?"]))
         {
             IsDemo = true;
             return false;

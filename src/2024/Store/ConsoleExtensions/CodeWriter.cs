@@ -111,121 +111,66 @@ internal static class CodeWriter
     {
 
         AskMessage(["ЗАДАНИЕ 1", new Exercise11().Exercise(), new Exercise12().Exercise(), new Exercise13().Exercise(), new Exercise14().Exercise(),
-            new Exercise15().Exercise(), new Exercise16().Exercise(), new Exercise17().Exercise()]);
+            new Exercise15().Exercise(), new Exercise16().Exercise(), new Exercise17().Exercise()], ConsoleKey.Spacebar);
 
         AskMessage(["ЗАДАНИЕ 2", new Exercise21().Exercise(), new Exercise22().Exercise(), new Exercise23().Exercise(), new Exercise24().Exercise(), 
-            new Exercise25().Exercise(), new Exercise26().Exercise(), new Exercise27().Exercise()]);
+            new Exercise25().Exercise(), new Exercise26().Exercise(), new Exercise27().Exercise()], ConsoleKey.Spacebar);
         
         AskMessage(["ЗАДАНИЕ 3", new Exercise31().Exercise(), new Exercise32().Exercise(), new Exercise33().Exercise(), new Exercise34().Exercise(),
-            new Exercise35().Exercise(), new Exercise36().Exercise(), new Exercise37().Exercise()]);
+            new Exercise35().Exercise(), new Exercise36().Exercise(), new Exercise37().Exercise()], ConsoleKey.Spacebar);
 
         AskMessage(["ЗАДАНИЕ 4", new Exercise41().Exercise(), new Exercise42().Exercise(), new Exercise43().Exercise(), new Exercise44().Exercise(),
-            new Exercise45().Exercise(), new Exercise46().Exercise(), new Exercise01().Exercise()]);
+            new Exercise45().Exercise(), new Exercise46().Exercise(), new Exercise01().Exercise()], ConsoleKey.Spacebar);
 
         AskMessage(["ЗАДАНИЕ 5", new Exercise51().Exercise(), new Exercise52().Exercise(), new Exercise53().Exercise(), new Exercise54().Exercise(),
-            new Exercise55().Exercise(), new Exercise02().Exercise(), new Exercise03().Exercise()]);
+            new Exercise55().Exercise(), new Exercise02().Exercise(), new Exercise03().Exercise()], ConsoleKey.Spacebar);
 
         AskMessage(["ЗАДАНИЕ 6", new Exercise61().Exercise(), new Exercise62().Exercise(), new Exercise63().Exercise(), new Exercise64().Exercise(),
-            new Exercise04().Exercise(), new Exercise05().Exercise(), new Exercise06().Exercise()]);
+            new Exercise04().Exercise(), new Exercise05().Exercise(), new Exercise06().Exercise()], ConsoleKey.Spacebar);
     }
 
-    public static bool ShowExercises(bool _showAnswers)
+    private static bool HelpExercise(IExercise exercise, bool showAnswers, ref int score)
     {
-        ShowMessage(["Тогда необходимо решить 6 задачек на время..."], false, BACKGROUND_COLOR, FOREGROUND_COLOR);
+        (var points, var giveUp) = Write(exercise);
+
+        if (!giveUp)    
+            score += points;
+
+        if (showAnswers) 
+            ShowMessage([points == 1 ? "Верно" : "Правильный ответ: " + exercise.Exercise()], 
+                false, points == 1 ? COLOR : ERROR_COLOR, points == 1 ? FOREGROUND_COLOR : ERROR_FOREGROUND_COLOR, 1000);
+        
+        return giveUp;
+    }
+
+    private static bool HelpExercise(List<List<IExercise>> exercises, List<IExercise> selected, bool showAnswers, int num, ref int score)
+    {
         var rnd = new Random();
-        List<List<IExercise>> exercises = [[new Exercise11(), new Exercise12(), new Exercise13(), new Exercise14(), new Exercise15(), new Exercise16(), new Exercise17()], 
-                                           [new Exercise21(), new Exercise22(), new Exercise23(), new Exercise24(), new Exercise25(), new Exercise26(), new Exercise27()], 
-                                           [new Exercise31(), new Exercise32(), new Exercise33(), new Exercise34(), new Exercise35(), new Exercise36(), new Exercise37()], 
-                                           [new Exercise41(), new Exercise42(), new Exercise43(), new Exercise44(), new Exercise45(), new Exercise46(), new Exercise01()], 
-                                           [new Exercise51(), new Exercise52(), new Exercise53(), new Exercise54(), new Exercise55(), new Exercise02(), new Exercise03()], 
-                                           [new Exercise61(), new Exercise62(), new Exercise63(), new Exercise64(), new Exercise04(), new Exercise05(), new Exercise06()]]; 
-        var score = 0;
-        int count = 0;  
-        int tryCount = 4;
-        bool giveUp = false;
-        while (count++ < tryCount)                                    
+        int ii, jj;
+        do
         {
-            ShowMessage([$"Попытка №{count} из {tryCount}"], false, BACKGROUND_COLOR, FOREGROUND_COLOR, 1000);
-            score = 0;
-            List<IExercise> selected = [];
-            HashSet<int> sequence  = [];
-            int num = 1;
-            for (int i = 0; i < exercises.Count; i++)
-            {
-                var j = rnd.Next(0, exercises[i].Count);
-                while(sequence.Any(x=>x == j))
-                {
-                    j = rnd.Next(0, exercises[i].Count);
-                }
-                sequence.Add(j);
-                exercises[i][j].Number = num++;
-                selected.Add(exercises[i][j]);
-            }          
-
-            if (_showAnswers) 
-                ShowMessage(["Сгенерированная последовательность:",string.Join(" ", sequence)], true, BACKGROUND_COLOR, FOREGROUND_COLOR, 1500);
-
-            foreach (var exercise in selected) 
-            {
-                (var points, giveUp) = Write(exercise);
-                
-                score += points;
-
-                if (_showAnswers) 
-                    ShowMessage([points == 1 ? "Верно" : "Правильный ответ: " + exercise.Exercise()], 
-                        false, points == 1 ? COLOR : ERROR_COLOR, points == 1 ? FOREGROUND_COLOR : ERROR_FOREGROUND_COLOR, 1000);
-                
-                if (giveUp)
-                    break;
-            }
-
-            if (score < exercises.Count)
-            {
-                
-                List<string> message = ["       Вы не прошли тест :(", "",
-                                       $"Количество верных ответов: {score} из {exercises.Count}"];
-                
-                if (score == exercises.Count - 1)
-                {
-                    message.Add(string.Empty);
-                    message.Add("     Принять спасательный круг? (y/n)");
-                    if (ErrorMessage([.. message], ConsoleKey.Y, ConsoleKey.N).Key != ConsoleKey.Y)
-                        continue;
-                    else
-                    {
-                        int ii, jj;
-                        do
-                        {
-                            ii = rnd.Next(0, exercises.Count);
-                            jj = rnd.Next(0, exercises.Count);
-                        }
-                        while(selected.Any(x=>x == exercises[ii][jj]));   
-                        
-                        (var points, giveUp) = Write(exercises[ii][jj]);                
-                        score += points;
-                        if (_showAnswers) 
-                            ShowMessage([points == 1 ? "Верно" : "Правильный ответ: " + exercises[ii][jj].Exercise()], 
-                                false, points == 1 ? COLOR : ERROR_COLOR, points == 1 ? FOREGROUND_COLOR : ERROR_FOREGROUND_COLOR, 1000);
-                
-                        if (giveUp)
-                            break;
-                    }
-                }
-                else if (count < tryCount)
-                {                    
-                    message.Add(string.Empty);
-                    message.Add("     Попытаться еще раз? (y/n)");
-                    if (ErrorMessage([.. message], ConsoleKey.Y, ConsoleKey.N).Key != ConsoleKey.Y)
-                        break;
-                }
-                else
-                    ShowMessage([.. message], false, ERROR_COLOR, ERROR_FOREGROUND_COLOR,  2000);               
-            }
-
-            if (score == exercises.Count) 
-                break; 
+            ii = rnd.Next(0, exercises.Count);
+            jj = rnd.Next(0, exercises.Count);
         }
+        while(selected.Any(x=>x == exercises[ii][jj]));   
+        
+        exercises[ii][jj].Number = num;
 
+        return HelpExercise(exercises[ii][jj], showAnswers, ref score);        
+    }
+
+    private static List<List<IExercise>> HelpExercise()
+    {
+        return [[new Exercise11(), new Exercise12(), new Exercise13(), new Exercise14(), new Exercise15(), new Exercise16(), new Exercise17()], 
+                [new Exercise21(), new Exercise22(), new Exercise23(), new Exercise24(), new Exercise25(), new Exercise26(), new Exercise27()], 
+                [new Exercise31(), new Exercise32(), new Exercise33(), new Exercise34(), new Exercise35(), new Exercise36(), new Exercise37()], 
+                [new Exercise41(), new Exercise42(), new Exercise43(), new Exercise44(), new Exercise45(), new Exercise46(), new Exercise01()], 
+                [new Exercise51(), new Exercise52(), new Exercise53(), new Exercise54(), new Exercise55(), new Exercise02(), new Exercise03()], 
+                [new Exercise61(), new Exercise62(), new Exercise63(), new Exercise64(), new Exercise04(), new Exercise05(), new Exercise06()]];
+    }
+    
+    private static bool ShowExercises(List<List<IExercise>> exercises, int score)
+    {
         var res = score < exercises.Count;
         if (res)
         {
@@ -237,6 +182,109 @@ internal static class CodeWriter
                          "      Далее можно посмотреть как работает терминал.      "], false, COLOR, FOREGROUND_COLOR);
         }
         return res;
+    }
+    
+    private static (List<IExercise> selected, int num) HelpExercise(List<List<IExercise>> exercises, bool showAnswers)
+    {
+        var rnd = new Random();        
+        List<IExercise> selected = [];                                   
+        HashSet<int> sequence  = [];
+        int num = 1;
+        for (int i = 0; i < exercises.Count; i++)
+        {
+            var j = rnd.Next(0, exercises[i].Count);
+            while(sequence.Any(x=>x == j))
+            {
+                j = rnd.Next(0, exercises[i].Count);
+            }
+            sequence.Add(j);
+            exercises[i][j].Number = num++;
+            selected.Add(exercises[i][j]);
+        }          
+
+        if (showAnswers) 
+            ShowMessage(["Сгенерированная последовательность:",string.Join(" ", sequence)], true, BACKGROUND_COLOR, FOREGROUND_COLOR, 1500);
+
+        return (selected, num);
+    }
+    
+    private static (bool brk, bool cnt) HelpExercise(ref int score, int num, int tryCount, int count, List<List<IExercise>> exercises, List<IExercise> selected, bool showAnswers)
+    {
+        if (score < exercises.Count)
+        {
+            
+            List<string> message = ["       Вы не прошли тест :(", "",
+                                    $"Количество верных ответов: {score} из {exercises.Count}"];
+            
+            if (score == exercises.Count - 1)
+            {
+                message.Add(string.Empty);
+                message.Add("     Принять спасательный круг? (y/n)");
+                if (ErrorMessage([.. message], ConsoleKey.Y, ConsoleKey.N).Key != ConsoleKey.Y)
+                    return (false, true);
+                else
+                {
+                    if (HelpExercise(exercises, selected, showAnswers, num, ref score))
+                        return (true, false);
+                }
+            }
+            else if (count < tryCount)
+            {                    
+                message.Add(string.Empty);
+                message.Add("     Попытаться еще раз? (y/n)");
+                if (ErrorMessage([.. message], ConsoleKey.Y, ConsoleKey.N).Key != ConsoleKey.Y)
+                    return (true, false);
+            }
+            else
+                ShowMessage([.. message], false, ERROR_COLOR, ERROR_FOREGROUND_COLOR,  2000);               
+        }
+
+        if (score == exercises.Count) 
+            return (true, false);
+        
+        return (false, false);
+    }
+    
+    private static readonly int[] _cases = [2, 0, 1, 1, 1, 2];
+    
+    private static string GenerateDeclension(int number, string nominative, string genitive, string plural)
+    {
+        if (number < 0) return nominative;
+        var titles = new[] {nominative, genitive, plural};
+        return titles[number % 100 > 4 && number % 100 < 20 ? 2 : _cases[(number % 10 < 5) ? number % 10 : 5]];
+    }
+
+    public static bool ShowExercises(bool showAnswers, int tryCount = 4)
+    {        
+        var exercises = HelpExercise(); 
+        var score = 0;
+        int count = 0;
+
+        ShowMessage([$"Тогда необходимо решить {exercises.Count} {GenerateDeclension(exercises.Count, "задачку","задачки","задачек")} на время..."], 
+            false, BACKGROUND_COLOR, FOREGROUND_COLOR);
+
+        while (count++ < tryCount)                                    
+        {
+            ShowMessage([$"Попытка №{count} из {tryCount}"], false, BACKGROUND_COLOR, FOREGROUND_COLOR, 1000);
+            score = 0;
+            (var selected, var num) = HelpExercise(exercises, showAnswers); 
+
+            foreach (var exercise in selected) 
+            {
+                if (HelpExercise(exercise, showAnswers, ref score))
+                    break;
+            }
+
+            (var brk, var cnt) = HelpExercise(ref score, num, tryCount, count, exercises, selected, showAnswers);
+
+            if (brk) 
+                break;
+
+            if (cnt)
+                continue;
+        }
+
+        return ShowExercises(exercises, score);
     }
 
     private static void ShowLinesOfCode(int offsetX, int offsetY, int count)
@@ -384,17 +432,17 @@ internal static class CodeWriter
             (answer, period, var esc) = InputWait(19, height - 2, period, 38, height - 2, exercise.Variants);
             var tmp = exercise.Check(answer);
 
-            if (esc && AskMessage(["Вы хотите сдаться? (y/n)"], ConsoleKey.Y, ConsoleKey.N).Key == ConsoleKey.Y)
+            if (esc && AskMessage(["Вы хотите сдаться?"]))
             {
                 return (tmp, true);
             }
-            else if (tmp < 0)
+            else if (!esc && tmp < 0)
             {
-                ShowMessage(["Варианта такого нет :("], false, ERROR_COLOR, ERROR_FOREGROUND_COLOR, 1000);
+                ShowMessage(["Нет такого варианта ответа :("], false, ERROR_COLOR, ERROR_FOREGROUND_COLOR, 1000);
             }
             else if (!esc && !string.IsNullOrEmpty(answer) ||
                 period == TimeSpan.Zero ||
-                (!esc && period != TimeSpan.Zero && AskMessage(["Вы уверены, что хотите оставить пустой ответ? (y/n)"], ConsoleKey.Y, ConsoleKey.N).Key == ConsoleKey.Y))
+                (!esc && period != TimeSpan.Zero && AskMessage(["Вы уверены, что хотите оставить пустой ответ? (y/n)"])))
             {
                 return (tmp, false);
             }
