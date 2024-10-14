@@ -828,7 +828,6 @@ public class Terminal
     { 
         bool include5th = true;  
         bool include4th = false;         
-
         var key = AskMessage(["Использовать темную тему? (y/n)"], ConsoleKey.Y, ConsoleKey.N);
         SetColors(key.Key == ConsoleKey.Y);
         SetMode(key);        

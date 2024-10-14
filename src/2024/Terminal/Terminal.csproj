@@ -9,7 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Store\Store.csproj" />
+    <ProjectReference Include="..\Store\Store.csproj" />  
+    <ProjectReference Include="..\QrCodeGenerator\QrCodeGenerator.csproj" />  
   </ItemGroup>
 
 </Project>

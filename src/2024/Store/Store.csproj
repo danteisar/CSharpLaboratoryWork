@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\2022\Product\Product.csproj" />
     <ProjectReference Include="..\..\2022\Showcase\Showcase.csproj" />
+    <ProjectReference Include="..\QrCodeGenerator\QrCodeGenerator.csproj" />
   </ItemGroup>
 
 </Project>
