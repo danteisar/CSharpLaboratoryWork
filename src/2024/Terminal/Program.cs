@@ -1,7 +1,10 @@
 ﻿using Store;
 using QrCodeGenerator;
+using System.Text;
 
-Console.WriteLine(new QrCode("19.09.2024"));
+// var text = "Данный тест для прогулявших лекцию 19.09.2024";
+// Console.WriteLine($"Текст: {text} Размер: {Encoding.UTF8.GetBytes(text).Length * 8}");
+// Console.WriteLine(new QrCode(text, CodeType.Binary));//, QR.V3, CorrectionLevel.M)); 
 
 Console.WriteLine("Press any key to continue...");
 Console.ReadKey(true);

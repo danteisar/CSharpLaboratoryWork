@@ -53,10 +53,12 @@ internal static class ConsoleWriter
             STORE2 = ConsoleColor.Red;
             STORE3 = ConsoleColor.Black;
         }
+        IsDark = isDark;
     }
     
     public static bool IsDemo { get; set; } = true;
     public static bool IsCredit { get; set; } = false;
+    public static bool IsDark { get; set; } = false;
     public static bool IncludeLoading { get; set; } = true;
 
     public static void WriteChar(int posX, int posY, char c)

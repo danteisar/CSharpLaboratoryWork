@@ -6,6 +6,7 @@ using static Store.ConsoleExtensions.ConsoleWriter;
 using static Store.ConsoleExtensions.CodeWriter;
 using static Store.Constants;
 using Store.ConsoleWrappers;
+using QrCodeGenerator;
 
 namespace Store;
 
@@ -827,9 +828,16 @@ public class Terminal
     private bool Init()
     { 
         bool include5th = true;  
-        bool include4th = false;         
-        var key = AskMessage(["Использовать темную тему? (y/n)"], ConsoleKey.Y, ConsoleKey.N);
+        bool include4th = false;      
+
+        var code = new QrCode($"Тест предназначен для прогулявших лекцию {WAS_ON_LAST_LESSON}", CodeType.Binary, invert: !IsDark);
+
+        var list = code.Code.Split('\n').ToList();
+        list.Insert(0, "");
+        list.Insert(0, "Использовать темную тему? (y/n)");
+        var key = AskMessage([.. list], ConsoleKey.Y, ConsoleKey.N);
         SetColors(key.Key == ConsoleKey.Y);
+
         SetMode(key);        
 
         if (IsDemo)
