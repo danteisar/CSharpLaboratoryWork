@@ -4,43 +4,55 @@ namespace QrCodeGenerator;
 
 internal static class QrCodeBuilder2
 {
+    public static bool IsDemo {get; set; } = false;
+
     #region GET
 
-    public static string GetQrCode(string text, QR qrCodeVersion, CodeType codeType, CorrectionLevel? needCorrectionLevel, int? maskNum = null, bool invert = false)
+    public static string GetQrCode(string text, ref QR qrCodeVersion, EncodedType codeType, ref CorrectionLevel? needCorrectionLevel, int? maskNum = null, bool invert = false)
     {    
         // Блоки с данными
         var sb = new StringBuilder();        
         sb.Append(GetServiceInformation(codeType, text));        
         var tmp = codeType switch {
-            CodeType.AlphaNumeric => EncodeAlphaNumeric(text.ToUpper()),
-            CodeType.Numeric => EncodeNumeric(text),
+            EncodedType.AlphaNumeric => EncodeAlphaNumeric(text.ToUpper()),
+            EncodedType.Numeric => EncodeNumeric(text),
             _ => EncodeBinary(text)
         };
         foreach (var str in tmp)
             sb.Append(str);
         AlignByByteSize(sb); 
         var encodedData = sb.ToString(); 
-        (var correctionLevel, qrCodeVersion) = GetCorrectionLevelAndVersion(encodedData.Length, qrCodeVersion, needCorrectionLevel); 
+        (needCorrectionLevel, qrCodeVersion) = GetCorrectionLevelAndVersion(encodedData.Length, qrCodeVersion, needCorrectionLevel); 
 
         // Блоки с байтами коррекции
-        var length = _maxData[(correctionLevel, qrCodeVersion)];
-        var codeText = FillCodeByCurrentSize(encodedData, length);        
-        var correctionBlock = GetCorrectionBlock(SplitByBlock(codeText), _correctionLevelBytesSize[correctionLevel][(byte)qrCodeVersion]);
-        var data = SetCorrectionBlock(correctionBlock, codeText); 
+        var length = _maxData[(needCorrectionLevel.Value, qrCodeVersion)];
+        var codeText = FillCodeByCurrentSize(encodedData, length);
+
+        var blockCount = _correctionLevelBlocksCount[needCorrectionLevel.Value][(byte)qrCodeVersion];      
+        var blocks = SplitByBlock(codeText, blockCount);
+
+        var correctionBlocks = new List<byte[]>();        
+        foreach (var block in blocks)
+        {
+            var size = _correctionLevelBytesSize[needCorrectionLevel.Value][(byte)qrCodeVersion];
+            correctionBlocks.Add(GetCorrectionBlock(block, size));
+        }      
+        
+        var data = CombineDataAndCorrectionBlocks(blocks, correctionBlocks); 
                
         // Создание матрицы QR кода c лучшей маской      
         var qrCodeData = new QrCodeData
         { 
             Version = qrCodeVersion,
-            CorrectionLevel = correctionLevel,
+            CorrectionLevel = needCorrectionLevel.Value,
             Data = data,
         };
 
         var qrCodeMatrix = maskNum.HasValue
-            ? qrCodeData.CreateMatrix(maskNum.Value, invert)
-            : qrCodeData.GetBestMatrix(invert);
+            ? qrCodeData.CreateMatrix(maskNum.Value)
+            : qrCodeData.GetBestMatrix();
 
-        return BuildString(qrCodeMatrix);
+        return BuildString(qrCodeMatrix, invert);
     }
 
     #endregion
@@ -51,6 +63,7 @@ internal static class QrCodeBuilder2
     /// Граница в два модуля вокруг QR-кода
     /// </summary>
     private const int BORDER = 2;
+    private const int POSITION_DETECTION = 8;
 
     /// <summary>
     /// Активный модуль
@@ -70,14 +83,18 @@ internal static class QrCodeBuilder2
     /// <summary>
     /// Сборка матрицы в готовую строку QR кода
     /// </summary>
-    private static string BuildString(List<byte[]> matrix)
+    private static string BuildString(this List<byte[]> matrix, bool invert)
     {
         var sb = new StringBuilder();
         for (int y = 0; y<matrix.Count; y+=2)
         {
             for(int x = 0; x<matrix[0].Length; x++)
             {
-                sb.Append(Scan(matrix[y][x], matrix[y+1][x]));  
+                var c = invert 
+                    ? ScanInvert(matrix[y][x], matrix[y+1][x])
+                    : Scan(matrix[y][x], matrix[y+1][x]);
+
+                sb.Append(c);  
             }
             sb.AppendLine();
         }
@@ -94,6 +111,16 @@ internal static class QrCodeBuilder2
             (0, 1) => '▄',
             (1, 0) => '▀',
             (1, 1) => '█',
+            _ => throw new NotImplementedException(),
+        };
+    
+    private static char ScanInvert(byte a, byte b)
+        => (a, b) switch
+        {
+            (1, 1) => ' ',
+            (1, 0) => '▄',
+            (0, 1) => '▀',
+            (0, 0) => '█',
             _ => throw new NotImplementedException(),
         };
 
@@ -120,7 +147,7 @@ internal static class QrCodeBuilder2
 
     #endregion
 
-    #region Fill Matrix
+    #region Matrix Templates
     
     private static List<byte[]> AddPosition(this List<byte[]> matrix, int x, int y)
     {
@@ -165,11 +192,11 @@ internal static class QrCodeBuilder2
 
     private static List<byte[]> AddTiming(this List<byte[]> matrix, bool isMask = false)
     {
-        for (int i = BORDER; i < matrix.Count - BORDER - 1; i++)
+        for (int i = BORDER; i < matrix.Count - BORDER - 1 - 6; i++)
         {
             matrix[i][BORDER + 6] = !isMask ? (byte)(i % 2) : ZERO;
         }
-        for (int i = BORDER; i < matrix[0].Length - BORDER; i++)
+        for (int i = BORDER; i < matrix[0].Length - BORDER - 6; i++)
         {
             matrix[BORDER + 6][i] = !isMask ? (byte)(i % 2) : ZERO;
         }
@@ -194,79 +221,115 @@ internal static class QrCodeBuilder2
         return matrix;
     }
 
-    private static readonly Dictionary<QR, int> _alignmentsPosition = new()
+    private static readonly Dictionary<QR, int[]> _alignmentsPosition = new()
     {
-        {QR.V1, NA},
-        {QR.V2, 18},
-        {QR.V3, 22},
-        {QR.V4, 26},
-        {QR.V5, 30},
-        {QR.V6, 34}
+        {QR.V1, []},
+        {QR.V2, [18]},
+        {QR.V3, [22]},
+        {QR.V4, [26]},
+        {QR.V5, [30]},        
+        {QR.V6, [34]},
+        {QR.V7, [6, 22, 38]},
+        {QR.V8, [6, 24, 42]},
+        {QR.V9, [6, 26, 46]}
     };
 
-    #endregion
-
-    #region FillData
-
-    #region AlphaVersion
-
-    private const int O = 0, Y = 0, Q = 0, H = 0;
-
-    private static readonly List<int[]> _orderMatrix =
-    [
-        [O, O,   O,   O,     O,   O,     O,   O, O,     O,   O,     O,   O,    O,   O,    O,  O,    O,  O,    O,  O,    O,  O,   O, O],        
-        [O, O,   O,   O,     O,   O,     O,   O, O,     O,   O,     O,   O,    O,   O,    O,  O,    O,  O,    O,  O,    O,  O,   O, O],
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   138, 137,  136, 135,    Y,  0,    0,  0,    0,  0,    0,  0,   O, O],
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   140, 139,  134, 133,    Y,  0,    0,  0,    0,  0,    0,  0,   O, O],
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   142, 141,  132, 131,    Y,  0,    0,  0,    0,  0,    0,  0,   O, O],
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   144, 143,  130, 129,    Y,  0,    0,  0,    0,  0,    0,  0,   O, O],
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   146, 145,  128, 127,    Y,  0,    0,  0,    0,  0,    0,  0,   O, O],
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   148, 147,  126, 125,    Y,  0,    0,  0,    0,  0,    0,  0,   O, O],
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   Q,     Q,   Q,    Q,   Q,    Y,  0,    0,  0,    0,  0,    0,  0,   O, O],
-        [O, O,   Y,   Y,     Y,   Y,     Y,   Y, Y,     Y,   H,   150, 149,  124, 123,    Y,  Y,    Y,  Y,    Y,  Y,    Y,  Y,   O, O],
-        [O, O,   H,   H,     H,   H,     H,   H, Q,     H,   H,   152, 151,  122, 121,    H,  H,    H,  H,    H,  H,    H,  H,   O, O], 
-        [O, O, 202, 201,   200, 199,   186, 185, Q,   184, 183,   154, 153,  120, 119,   74, 73,   72, 71,   26, 25,   24, 23,   O, O], 
-        [O, O, 204, 203,   198, 197,   188, 187, Q,   182, 181,   156, 155,  118, 117,   76, 75,   70, 69,   28, 27,   22, 21,   O, O], 
-        [O, O, 206, 205,   196, 195,   190, 189, Q,   180, 179,   158, 157,  116, 115,   78, 77,   68, 67,   30, 29,   20, 19,   O, O], 
-        [O, O, 208, 207,   194, 193,   192, 191, Q,   178, 177,   160, 159,  114, 113,   80, 79,   66, 65,   32, 31,   18, 17,   O, O],    
-        [O, O,   Y,   Y,     Y,   Y,     Y,   Y, Y,     Y,   Q,   162, 161,  112, 111,   82, 81,   64, 63,   34, 33,   16, 15,   O, O],  
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   164, 163,  110, 109,   84, 83,   62, 61,   36, 35,   14, 13,   O, O], 
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   166, 165,  108, 107,   86, 85,   60, 59,   38, 37,   12, 11,   O, O], 
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   168, 167,  106, 105,   88, 87,   58, 57,   40, 39,   10, 09,   O, O], 
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   170, 169,  104, 103,   90, 89,   56, 55,   42, 41,   08, 07,   O, O], 
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   172, 171,  102, 101,   92, 91,   54, 53,   44, 43,   06, 05,   O, O], 
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   174, 173,  100, 099,   94, 93,   52, 51,   46, 45,   04, 03,   O, O], 
-        [O, O,   0,   0,     0,   0,     0,   0, 0,     Y,   H,   176, 175,  098, 097,   96, 95,   50, 49,   48, 47,   02, 01,   O, O],
-        [O, O,   O,   O,     O,   O,     O,   O, O,     O,   O,     O,   O,    O,   O,    O,  O,    O,  O,    O,  O,    O,  O,   O, O],
-        [O, O,   O,   O,     O,   O,     O,   O, O,     O,   O,     O,   O,    O,   O,    O,  O,    O,  O,    O,  O,    O,  O,   O, O],
-        [O, O,   O,   O,     O,   O,     O,   O, O,     O,   O,     O,   O,    O,   O,    O,  O,    O,  O,    O,  O,    O,  O,   O, O]
-    ];
-
-    /// <summary>
-    /// Получение позиции модуля
-    /// </summary>
-    private static (int x, int y, bool found) SearchPlace(int pos)
+    private static readonly Dictionary<QR, string> _versionCodes = new()
     {
-        var matrix = _orderMatrix;
+        //                    000010    ▄
+        //                    111101 █▀▀▄▀
+        {QR.V7,  "000010011110100110"},
+        //                    010001  ▄   ▄
+        //                    011100 ▄██▀ 
+        {QR.V8,  "010001011100111000"},
+        //                    110111 ▄▄ ▄▄▄
+        //                    011000  ▀▀▄
+        {QR.V9,  "110111011000000100"},
+        //                    101001 ▄ ▄  ▄
+        //                    111110 ▀▀▀▀▀
+        {QR.V10, "101001111110000000"},
+        //                    001111   ▄▄▄▄
+        //                    111010 ███▄▀
+        {QR.V11, "001111111010111100"},
+        //                    001101   ▄▄ ▄
+        //                    100100 ▀▄▄▀▄
+        {QR.V12, "001101100100011010"},
+        //                    101011 ▄ ▄ ▄▄ 
+        //                    100000 █  ▄▄
+        {QR.V13, "101011100000100110"},
+        //                    110101 ▄▄ ▄ ▄
+        //                    000110 ▄▀ █▄▀
+        {QR.V14, "110101000110100010"},
+        //                    010011  ▄  ▄▄
+        //                    000010  ▄▄▄█
+        {QR.V15, "010011000010011110"},
+        //                    011100  ▄▄▄
+        //                    010001 █▄▄ ▀
+        {QR.V16, "011100010001011100"},
+        //                    111010 ▄▄▄ ▄
+        //                    010101 ▄▀ ▀ ▀
+        {QR.V17, "111010010101100000"},
+        //                    100100 ▄  ▄
+        //                    110011 █▀ ▄▀▀
+        {QR.V18, "100100110011100100"},
+        //                    000010     ▄
+        //                    110111 ▀█▄▀▀▀
+        {QR.V19, "000010110111011000"},
+    };
 
-        for (int x = BORDER; x<matrix.Count-BORDER-1; x++)
+    private static List<byte[]> FillVersion(this List<byte[]> matrix, QR qrCodeVersion, bool isMask = false)
+    {
+        if ((byte)qrCodeVersion < 7) return matrix;
+
+        int pos = 0;
+        var version =  _versionCodes[qrCodeVersion];        
+        int offsetColumn = BORDER;
+        int offsetRow = matrix.Count - BORDER - 1 - POSITION_DETECTION - 3;
+
+        for (int row = 0; row < 3; row++)
         {
-            for (int y = BORDER; y<matrix[x].Length-BORDER; y++)
+            for (int column = 0; column < 6; column++)
             {
-                if (matrix[x][y]==pos)
-                    return (x,y, true);
+                byte value = isMask || version[pos++] == '1' ? ZERO : ACTIVE;                
+                matrix[offsetColumn + column][offsetRow + row] = value;
+                matrix[offsetRow + row][offsetColumn + column] = value;
             }
         }
-        return (default, default, false);
+        return matrix;
     }
 
-
-    #endregion
-    
-    #region BetaVersion
-
     /// <summary>
-    /// Ограничивающая матрица для движения
+    /// Готовая матрица QR-кода
+    /// </summary>
+    private static List<byte[]> CreateMatrix(this QrCodeData data, int maskNum)
+    {
+        var size = GetMatrixSizeForVersion(data.Version);
+        var tmp = CreateQrCodeMatrix(size)                    
+            .PutDataInMatrix(data.Data, data.Version)            
+            .MaskInvertMatrix(GetMatrixMask(maskNum))  
+            .AddMaskNumAndCorrectionLevel(data.CorrectionLevel, data.Version, maskNum);
+
+        int posX1 = BORDER + 3;
+        int posX2 = tmp.Count - BORDER - 5;
+        int posY = BORDER + 3;
+
+        tmp.AddTiming()
+           .AddPosition(posX1, posY)
+           .AddPosition(posX1, tmp[0].Length - BORDER - 4)            
+           .AddPosition(posX2, posY);
+
+        foreach (var x in _alignmentsPosition[data.Version])
+            foreach (var y in _alignmentsPosition[data.Version].Where(y => CanFill(x + BORDER, y + BORDER, tmp)))               
+                tmp.AddAlignment(x + BORDER, y + BORDER);  
+
+        tmp.Fill(posX2 - 4, posY + 5, 0)
+           .FillVersion(data.Version);    
+
+        return tmp;
+    }
+    
+    /// <summary>
+    /// Ограничивающая матрица для размещения данных
     /// </summary>
     private static List<byte[]> CreateOrderMatrix(QR version)
     {  
@@ -282,370 +345,107 @@ internal static class QrCodeBuilder2
         int posX2 = BORDER + cubeSize + (int)version * 4;           
         int posY2 = BORDER + cubeSize + (int)version * 4;     
 
-        tmp.AddTiming(true)
-           .FillCube(posX1, posY1, cubeSize, ZERO)
+        tmp.FillCube(posX1, posY1, cubeSize, ZERO)
            .FillCube(posX1, posY2, cubeSize, ZERO)            
-           .FillCube(posX2, posY1, cubeSize, ZERO)
-           ;
+           .FillCube(posX2, posY1, cubeSize, ZERO);
 
-        if ((int)version > 1)
-        {
-           var pos = _alignmentsPosition[version];
-           tmp.FillCube(pos + BORDER - 2, pos + BORDER - 2, 5, 0);
-        };
+        foreach (var x in _alignmentsPosition[version])
+            foreach (var y in _alignmentsPosition[version].Where(y => CanFill(x + BORDER, y + BORDER, tmp)))
+                tmp.FillCube(x + BORDER - 2, y + BORDER - 2, 5, 0);
+
+        tmp.AddTiming(true)
+           .FillVersion(version, true);                 
 
         return tmp;
     }
 
-    private static Direction CalculateNextPosition(Direction current, List<byte[]> orderMatrix)
-    {
-        if (current is null)
-            return (orderMatrix.Count - 4, orderMatrix[0].Length - 3, MoveDirection.Left);
-        
-        if (current.Row == 9 && current.Column == 13 ||
-            current.Row == 7 && current.Column == 12 ||
-            current.Row == 11 && current.Column == 22 ||
-            current.Row == 10 && current.Column == 10 ||
-            current.Row == 14 && current.Column == 7 ||
-            current.Row == 10 && current.Column == 6)
-        {
-           var t = 0;     
-        }
-        if (current.NextDirection == MoveDirection.DownRight && orderMatrix[current.Row + 1][current.Column + 1] == ACTIVE)
-        {
-            return (current.Row + 1, current.Column + 1, MoveDirection.Left);
-        }        
-        else if (current.NextDirection == MoveDirection.UpRight && orderMatrix[current.Row - 1][current.Column + 1] == ACTIVE)
-        {
-            return (current.Row - 1, current.Column + 1, MoveDirection.Left);
-        }  
-        else if (current.NextDirection == MoveDirection.UpRight || current.NextDirection == MoveDirection.DownRight)
-        {
-            var tryMove = AnyWay(current, orderMatrix);
-            
-            if (tryMove is {}) 
-                return tryMove;            
-        }
-        else if (current.NextDirection == MoveDirection.Left && orderMatrix[current.Row][current.Column - 1] == ACTIVE)
-        {
-            if (orderMatrix[current.Row+1][current.Column] == ACTIVE)
-                return (current.Row, current.Column - 1, MoveDirection.DownRight);
-            
-            if (orderMatrix[current.Row-1][current.Column] == ACTIVE)
-                return (current.Row, current.Column - 1, MoveDirection.UpRight);
-
-            if (orderMatrix[current.Row][current.Column - 1] == ACTIVE)
-                return (current.Row, current.Column - 1, MoveDirection.Left);  
-        }
-        else
-        {
-            // var tryMove = AnyWay(current, orderMatrix);
-            
-            // if (tryMove is {}) 
-            //     return tryMove;
-        }
-
-        return null;    
-    }
-
-    private static Direction AnyWay(Direction current, List<byte[]> orderMatrix)
-    {
-        if (current.NextDirection == MoveDirection.UpRight)
-        {
-            int offset = 1;
-            while (orderMatrix[current.Row - offset][current.Column + 1] == ZERO)
-            {
-                if (current.Row - offset == 0) return null;
-                offset++;
-            }
-            return (current.Row - offset, current.Column + 1, MoveDirection.Left);
-        }
-        else if (current.NextDirection == MoveDirection.UpRight)
-        {
-            int offset = 1;
-            while (orderMatrix[current.Row + offset][current.Column + 1] == ZERO)
-            {
-                if (current.Row + offset == orderMatrix.Count) return null;
-                offset++;
-            }
-            return (current.Row + offset, current.Column + 1, MoveDirection.Left);
-        }
-
-        return null;
-    }
-    
-    private static List<byte[]> PutDataInMatrixBeta(this List<byte[]> matrix, string text, QR version)
-    {
-        var orderMatrix = CreateOrderMatrix(version);        
-        Direction current = null;
-        for (int i = 0; i < text.Length; i++)
-        {
-            char letter = text[i];            
-            current = CalculateNextPosition(current, orderMatrix);            
-            if (current == null) break;  
-
-            orderMatrix[current.Row][current.Column] = ZERO;
-            matrix[current.Row][current.Column] = ACTIVE; //letter != '1' ? ACTIVE : ZERO;                          
-        }
-
-        return matrix;
-    }
-
     #endregion
 
-    #region V1
-
-    private static readonly Pair _s = (0,0);
-    private static readonly Pair _l = (0,-1);
-    private static readonly Pair _t = (-1,0);
-    private static readonly Pair _tr = (-1,1);
-    private static readonly Pair _br = (1,1);
-    private static Pair[] BYTE_00 = [_s,_l,_tr,_l,_tr,_l,_tr,_l];    
-    private static Pair[] BYTE_01 = [_tr,_l,_tr,_l,_tr,_l,_tr,_l];    
-    private static Pair[] BYTE_02 = [_l,_l,_br,_l,_br,_l,_br,_l];
-    private static Pair[] BYTE_03 = [_br,_l,_br,_l,_br,_l,_br,_l];
-    private static Pair[] BYTE_04 = [_l,_l,_tr,_l,_tr,_l,_tr,_l];
-    private static Pair[] BYTE_19 = [_tr,_l,_tr,_l,(-2,1),_l,_tr,_l];
-    private static Pair[] BYTE_20 = [_br,_l,_br,_l,(2,1),_l,_br,_l];
-    private static Pair[] BYTE_21 = [(-8, -1),_l,_tr,_l,_tr,_l,_tr,_l];
-    private static Pair[] BYTE_22 = [(0,-2),_l,_br,_l,_br,_l,_br,_l];
-
-    private static List<Pair[]> _scanListV1 = [/* COLUMNS 18-17 */ BYTE_00, BYTE_01, BYTE_01, 
-                                               /* COLUMNS 16-15 */ BYTE_02, BYTE_03, BYTE_03,
-                                               /* COLUMNS 14-13 */ BYTE_04, BYTE_01, BYTE_01,
-                                               /* COLUMNS 12-11 */ BYTE_02, BYTE_03, BYTE_03, 
-                                               /* COLUMNS 10-09 */ BYTE_04, BYTE_01, BYTE_01, BYTE_19, BYTE_01, 
-                                               /* COLUMNS 07-06 */ BYTE_02, BYTE_20, BYTE_03, BYTE_03, BYTE_03,
-                                               /* COLUMNS 10-09 */ BYTE_21, 
-                                               /* COLUMNS 07-06 */ BYTE_22, 
-                                               /* COLUMNS 05-04 */ BYTE_04, 
-                                               /* COLUMNS 03-02 */ BYTE_02,
-                                               ];
-
-   #endregion
-
-    #region V2...V5
-    /// <summary>
-    ///  ↑
-    /// ██
-    /// ██
-    ///  ↑
-    /// </summary>
-    private static Pair[] BYTE_05 = [(-6,1),_l,_tr,_l,_tr,_l,_tr,_l];
-    /// <summary>
-    /// ▄▄▄▄
-    ///  ↓██
-    ///    ↑
-    /// </summary>
-    private static Pair[] BYTE_06 = [_tr,_l,_tr,_l,_tr,_l,_l,_l];
-    /// <summary>
-    ///  ↓
-    /// ██
-    /// 
-    /// 
-    /// ▄▄
-    /// ▀▀
-    /// ↓
-    /// </summary>
-    private static Pair[] BYTE_07 = [_br,_l,_br,_l,(6,1),_l,_br,_l];
-    /// <summary>
-    ///  ↑ ↓
-    /// ████  
-    /// </summary>
-    private static Pair[] BYTE_08 = [_br,_l,_br,_l,_l,_l,_tr,_l];
-    /// <summary>
-    /// ↑
-    /// █
-    /// █
-    /// ██
-    ///  ↑
-    /// </summary>
-    private static Pair[] BYTE_09 = [_tr,_l,_tr,_l,_t,_t,_t,_t];
-    /// <summary>
-    /// ←▄
-    /// ██
-    /// ▀  
-    /// ↑
-    /// </summary>
-    private static Pair[] BYTE_10 = [_t,_tr,_l,_tr,_l,_tr,_l,_tr];
-    /// <summary>
-    /// ←▄
-    /// ██
-    /// ▀←
-    /// </summary>
-    private static Pair[] BYTE_11 = [_l,_tr,_l,_tr,_l,_tr,_l,_tr];
-    /// <summary>
-    /// ←▄
-    /// ██ 
-    /// ▄▄
-    /// ▀← 
-    /// </summary>
-    private static Pair[] BYTE_12 = [_l,_tr,_l,(-2, 1),_l,_tr,_l,_tr];
-    /// <summary>
-    ///
-    /// ←▀██ 
-    ///   ██
-    ///   ▀←  
-    /// </summary>
-    private static Pair[] BYTE_13 = [_l,_tr,_l,_tr,_l,_tr,_l,_l];
-    /// <summary>
-    /// ▄←
-    /// ██
-    /// ←▀  
-    /// </summary>
-    private static Pair[] BYTE_14 = [_l,_br,_l,_br,_l,_br,_l,_br];
-    /// <summary>
-    /// ▄←
-    /// ▀▀ 
-    /// ██
-    /// ←▀  
-    /// </summary>
-    private static Pair[] BYTE_15 = [_l,_br,_l,(2, 1),_l,_br,_l,_br];
-    /// <summary>
-    ///   ▄←
-    ///   ██ 
-    /// ←▀▀▀
-    /// </summary>
-    private static Pair[] BYTE_16 = [_l,_br,_l,_br,_l,_br,_l,_l];
-    /// <summary>
-    /// ←▀
-    ///   ▄←
-    ///   ██ 
-    ///   ▀▀
-    /// </summary>
-    private static Pair[] BYTE_17 = [_l,_br,_l,_br,_l,_br,_l,(-8, -1)];
-    /// <summary>
-    /// ←▄ ▄▄
-    ///    ██
-    ///   ← ▀
-    /// </summary>
-    private static Pair[] BYTE_18 = [_l,_tr,_l,_tr,_l,_tr,_l,(0,-2)];
-
-    private static List<Pair[]> _scanListV2 = [/* COLUMNS 24-23 */ BYTE_00, BYTE_01, BYTE_01, BYTE_01,
-                                               /* COLUMNS 22-21 */ BYTE_02, BYTE_03, BYTE_03, BYTE_03, 
-                                               /* COLUMNS 20-19 */ BYTE_04, BYTE_05, BYTE_06, 
-                                               /* COLUMNS 18-17 */ BYTE_03, BYTE_07, BYTE_08, 
-                                               /* COLUMNS 16-15 */ BYTE_09, BYTE_10, BYTE_11, BYTE_12, BYTE_13, 
-                                               /* COLUMNS 14-13 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_16,
-                                               /* COLUMNS 12-11 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13,
-                                               /* COLUMNS 10-09 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_17,
-                                               /* COLUMNS 08-07 */ BYTE_11, BYTE_18,
-                                               /* COLUMNS 04-04 */ BYTE_14, BYTE_16,
-                                               /* COLUMNS 03-02 */ BYTE_11, BYTE_13,
-                                               /* COLUMNS 00-00 */ BYTE_14
-                                               ];
-
-    private static List<Pair[]> _scanListV3 = [/* COLUMNS 28-27 */ BYTE_00, BYTE_01, BYTE_01, BYTE_01, BYTE_01,
-                                               /* COLUMNS 26-25 */ BYTE_02, BYTE_03, BYTE_03, BYTE_03, BYTE_03,
-                                               /* COLUMNS 24-23 */ BYTE_04, BYTE_05, BYTE_01, BYTE_06, 
-                                               /* COLUMNS 22-21 */ BYTE_03, BYTE_03, BYTE_07, BYTE_08, 
-                                               /* COLUMNS 20-19 */ BYTE_09, BYTE_10, BYTE_11, BYTE_11, BYTE_12, BYTE_13, 
-                                               /* COLUMNS 18-17 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_16, 
-                                               /* COLUMNS 16-15 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13, 
-                                               /* COLUMNS 14-13 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_16,
-                                               /* COLUMNS 12-11 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13,
-                                               /* COLUMNS 10-09 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_17,
-                                               /* COLUMNS 08-07 */ BYTE_11, BYTE_11, BYTE_18,
-                                               /* COLUMNS 04-04 */ BYTE_14, BYTE_14, BYTE_16,
-                                               /* COLUMNS 03-02 */ BYTE_11, BYTE_11, BYTE_13,
-                                               /* COLUMNS 00-00 */ BYTE_14, BYTE_14
-                                               ];
-
-    private static List<Pair[]> _scanListV4 = [/* COLUMNS 32-31 */ BYTE_00, BYTE_01, BYTE_01, BYTE_01, BYTE_01, BYTE_01,
-                                               /* COLUMNS 30-29 */ BYTE_02, BYTE_03, BYTE_03, BYTE_03, BYTE_03, BYTE_03,
-                                               /* COLUMNS 28-27 */ BYTE_04, BYTE_05, BYTE_01, BYTE_01, BYTE_06, 
-                                               /* COLUMNS 26-25 */ BYTE_03, BYTE_03, BYTE_03, BYTE_07, BYTE_08, 
-                                               /* COLUMNS 24-23 */ BYTE_09, BYTE_10, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13, 
-                                               /* COLUMNS 22-21 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_16,
-                                               /* COLUMNS 20-19 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13, 
-                                               /* COLUMNS 18-17 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_16, 
-                                               /* COLUMNS 16-15 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13, 
-                                               /* COLUMNS 14-13 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_16, 
-                                               /* COLUMNS 12-11 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13, 
-                                               /* COLUMNS 10-09 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_17,
-                                               /* COLUMNS 08-07 */ BYTE_11, BYTE_11, BYTE_11, BYTE_18,
-                                               /* COLUMNS 04-04 */ BYTE_14, BYTE_14, BYTE_14, BYTE_16,
-                                               /* COLUMNS 03-02 */ BYTE_11, BYTE_11, BYTE_11, BYTE_13,
-                                               /* COLUMNS 00-00 */ BYTE_14, BYTE_14, BYTE_14
-                                               ];
-
-    private static List<Pair[]> _scanListV5 = [/* COLUMNS 36-35 */ BYTE_00, BYTE_01, BYTE_01, BYTE_01, BYTE_01, BYTE_01, BYTE_01,
-                                               /* COLUMNS 34-33 */ BYTE_02, BYTE_03, BYTE_03, BYTE_03, BYTE_03, BYTE_03, BYTE_03,
-                                               /* COLUMNS 32-31 */ BYTE_04, BYTE_05, BYTE_01, BYTE_01, BYTE_01, BYTE_06,
-                                               /* COLUMNS 30-29 */ BYTE_03, BYTE_03, BYTE_03, BYTE_03, BYTE_07, BYTE_08,
-                                               /* COLUMNS 28-27 */ BYTE_09, BYTE_10, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13,
-                                               /* COLUMNS 26-25 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_16,
-                                               /* COLUMNS 24-23 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13,
-                                               /* COLUMNS 22-21 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_16,
-                                               /* COLUMNS 20-19 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13,
-                                               /* COLUMNS 18-17 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_16,
-                                               /* COLUMNS 16-15 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13,
-                                               /* COLUMNS 14-13 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_16,
-                                               /* COLUMNS 12-11 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_12, BYTE_13,
-                                               /* COLUMNS 10-09 */ BYTE_14, BYTE_15, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_17,
-                                               /* COLUMNS 08-07 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_18,
-                                               /* COLUMNS 04-04 */ BYTE_14, BYTE_14, BYTE_14, BYTE_14, BYTE_16,
-                                               /* COLUMNS 03-02 */ BYTE_11, BYTE_11, BYTE_11, BYTE_11, BYTE_13,
-                                               /* COLUMNS 00-00 */ BYTE_14, BYTE_14, BYTE_14, BYTE_14
-                                               ];
-    #endregion
-    
-    private static List<Pair[]> GetScanSequence(QR version)
-        => version switch
-           {
-               QR.V1 => _scanListV1,
-               QR.V2 => _scanListV2,
-               QR.V3 => _scanListV3,
-               QR.V4 => _scanListV4,
-               QR.V5 => _scanListV5,
-               _ => _scanListV1
-           };
+    #region Place Data in Matrix
 
     /// <summary>
-    /// Занесение в матрицу данных // TODO
+    /// Нельзя размещать в POSITION_DETECTION
+    /// </summary>
+    private static bool CanFill(int x, int y, List<byte[]> matrix)
+        => !(x < POSITION_DETECTION + BORDER + 1 && y < POSITION_DETECTION + BORDER + 1 ||
+                x < POSITION_DETECTION + BORDER + 1 && y > matrix[0].Length - POSITION_DETECTION - BORDER ||
+                x > matrix.Count - POSITION_DETECTION - BORDER - 1 && y < POSITION_DETECTION + BORDER + 1);  
+
+    /// <summary>
+    /// Размещение данных на матрице
     /// </summary>
     private static List<byte[]> PutDataInMatrix(this List<byte[]> matrix, string text, QR version)
-    {
-        var sequence = GetScanSequence(version);
-        (int row, int column) = (matrix.Count - BORDER * 2, matrix[0].Length - BORDER - 1);
-        int i = 0;
-        foreach (var scan in sequence)
+    {        
+        var blockedModules = CreateOrderMatrix(version); 
+
+        var size = matrix.Count - 1;
+        var up = true; 
+        var index = 0; 
+        var count = text.Length; 
+        
+        for (var column = size - 3; column >= 2; column -= 2)
         {
-            foreach(var move in scan)
-            {                
-                byte active = i >= text.Length 
-                    ? ACTIVE : text[i++] != '1' 
-                        ? ACTIVE 
-                        : ZERO; 
+            if (column == 8) column--;               
 
-                //active = ACTIVE; 
+            for (var i = 0; i < size; i++)
+            {    
+                var row = up ? size - i : i;
 
-                row += move.X;
-                column += move.Y;
-                matrix[row][column] = active;
+                if (index < count && !blockedModules.IsBlocked(row, column))
+                    PlaceData(matrix, blockedModules, row, column, text[index++]);                       
+                    
+                if (index < count && column > 0 && !blockedModules.IsBlocked(row, column - 1))
+                    PlaceData(matrix, blockedModules, row, column - 1, text[index++]);
+
+                if (IsDemo)
+                {
+                    Console.SetCursorPosition(0,0);
+                    Console.Write(blockedModules.BuildString(false));
+                    Thread.Sleep(1);
+                }  
             }
+            up = !up;
         }
+
+        if (IsDemo) 
+            Console.ReadKey(true);
 
         return matrix;
     }
 
+    /// <summary>
+    /// Запрещенное место для записи данных
+    /// </summary>
+    private static bool IsBlocked(this List<byte[]> blockedModules, int row, int column)
+    {
+        return blockedModules[row][column] == ZERO;
+    }
+
+    /// <summary>
+    /// Размещение бита информации
+    /// </summary>
+    private static void PlaceData(List<byte[]> matrix, List<byte[]> blockedModules, int row, int column, char letter)
+    {
+        blockedModules[row][column] = ZERO;
+        matrix[row][column] = letter != '1' ? ACTIVE : ZERO;
+    }
 
     #endregion
 
-    #region Decode
+    #region Encode Data
 
-    private static readonly Dictionary<CodeType, string> _codeTypeMode = new()
+    private static readonly Dictionary<EncodedType, string> _codeTypeMode = new()
     {
-        {CodeType.Numeric,      "0001"},
-        {CodeType.AlphaNumeric, "0010"},
-        {CodeType.Binary,       "0100"}
+        {EncodedType.Numeric,      "0001"},
+        {EncodedType.AlphaNumeric, "0010"},
+        {EncodedType.Binary,       "0100"}
     };
 
-    private static readonly Dictionary<CodeType, byte> _codeTypeSize = new()
+    private static readonly Dictionary<EncodedType, byte> _codeTypeSize = new()
     {
-        {CodeType.Numeric, 10},
-        {CodeType.AlphaNumeric, 9},
-        {CodeType.Binary, 8}
+        {EncodedType.Numeric, 10},
+        {EncodedType.AlphaNumeric, 9},
+        {EncodedType.Binary, 8}
     };
 
     private static readonly char[] letterNumberArray = {
@@ -714,18 +514,18 @@ internal static class QrCodeBuilder2
         return res;
     }
 
-    private static string GetDataLength(CodeType codeType, string text)
+    private static string GetDataLength(EncodedType codeType, string text)
     {
         var length = codeType switch
         {
-            CodeType.Binary => Encoding.UTF8.GetBytes(text).Length,
+            EncodedType.Binary => Encoding.UTF8.GetBytes(text).Length,
             _ => text.Length,
         };
         var str = Convert.ToString(length, 2).PadLeft(_codeTypeSize[codeType], '0');
         return str;
     }
     
-    private static string GetServiceInformation(CodeType codeType, string text)
+    private static string GetServiceInformation(EncodedType codeType, string text)
     { 
         return _codeTypeMode[codeType] + GetDataLength(codeType, text);       
     }
@@ -757,34 +557,54 @@ internal static class QrCodeBuilder2
             .Select(i => text.Substring(i * chunkSize, chunkSize));
     }
 
-    private static List<byte> SplitByBlock(string text)
+    private static List<byte[]> SplitByBlock(string text, int blocksCount)
     {
         List<byte> tmp = [];
         foreach (var line in text.SplitText(8))
         {
             tmp.Add(Convert.ToByte(line,2));
         }
-        return tmp;
+
+        var size = text.Length / 8 / blocksCount;
+        var extraSize = text.Length / 8 % blocksCount;
+
+        List<byte[]> list = [];
+        for (int i = blocksCount -1 ; i >= 0; i--)
+        {
+            var currentSize = size + (extraSize-- > 0 ? 1 : 0);
+            list.Insert(0, new byte[currentSize]);        
+        }
+
+        var index = 0;
+        foreach (var block in list)
+        {
+            for (int i = 0; i<block.Length; i++)
+            {
+                block[i] = tmp[index++];
+            }
+        }
+        
+        return list;
     }
 
     #endregion
 
-    #region Correction
+    #region Correction Data
 
     private static readonly Dictionary<CorrectionLevel, byte[]> _correctionLevelBytesSize = new()
     {
-        {CorrectionLevel.L, [NA,07,10,15,20,26,18]},
-        {CorrectionLevel.M, [NA,10,16,26,18,24,16]},
-        {CorrectionLevel.Q, [NA,13,22,18,26,18,24]},
-        {CorrectionLevel.H, [NA,17,28,22,16,22,28]},
+        {CorrectionLevel.L, [NA,07,10,15,20,26,18,20,24,30]},
+        {CorrectionLevel.M, [NA,10,16,26,18,24,16,18,22,22]},
+        {CorrectionLevel.Q, [NA,13,22,18,26,18,24,18,22,20]},
+        {CorrectionLevel.H, [NA,17,28,22,16,22,28,26,26,24]},
     };
 
     private static readonly Dictionary<CorrectionLevel, byte[]> _correctionLevelBlocksCount = new()
     {
-        {CorrectionLevel.L, [NA,1,1,1,1,1,2]},
-        {CorrectionLevel.M, [NA,1,1,1,2,2,4]},
-        {CorrectionLevel.Q, [NA,1,1,2,2,4,4]},
-        {CorrectionLevel.H, [NA,1,1,2,4,4,4]},
+        {CorrectionLevel.L, [NA,1,1,1,1,1,2,2,2,6]},
+        {CorrectionLevel.M, [NA,1,1,1,2,2,4,4,4,5]},
+        {CorrectionLevel.Q, [NA,1,1,2,2,4,4,6,6,8]},
+        {CorrectionLevel.H, [NA,1,1,2,4,4,4,5,6,8]},
     };
 
     private static readonly Dictionary<byte, byte[]> _correctionLevelGeneratingPolynomial = new()
@@ -840,16 +660,16 @@ internal static class QrCodeBuilder2
                                                       79,174,213,233,230,231,173,232,116,214,244,234,168,80,88,175
                                                     ];
     
-    private static List<byte> GetCorrectionBlock(List<byte> block, byte bytesSize)
+    private static byte[] GetCorrectionBlock(byte[] block, byte bytesSize)
     {       
-        var size = Math.Max(block.Count, bytesSize);
+        var size = Math.Max(block.Length, bytesSize);
         var m = new List<byte>(block);
         var g = _correctionLevelGeneratingPolynomial[bytesSize];
         var n = g.Length;
         while (m.Count != size)
             m.Add(0);
 
-        for (int i = 0; i < block.Count; i++)
+        for (int i = 0; i < block.Length; i++)
         {
             byte a = m[0];
             if (a == 0) continue;
@@ -868,17 +688,36 @@ internal static class QrCodeBuilder2
             }
         }
          
-        return m.Take(n).ToList();    
+        return m.Take(n).ToArray();    
     }
-   
-    private static string SetCorrectionBlock(List<byte> block, string codeText)
-    {       
-        var sb = new StringBuilder(codeText);
-        foreach (var b in block)
+       
+    private static void ScanData(List<byte[]> data, StringBuilder sb)
+    {
+        if (data.Count == 1)
         {
-            var tmp = Convert.ToString(b, 2).PadLeft(8, '0');
-            sb.Append(tmp);
+            foreach (var b in data[0])
+            {
+                sb.Append(Convert.ToString(b, 2).PadLeft(8, '0'));
+            } 
+            return;
         }
+
+        var size = data.Max(x=> x.Length);
+        for (int i = 0; i<size; i++)
+        {
+            foreach (var bytes in data)
+            {
+                if (i < bytes.Length)
+                    sb.Append(Convert.ToString(bytes[i], 2).PadLeft(8, '0'));
+            }            
+        }
+    }
+    
+    private static string CombineDataAndCorrectionBlocks(List<byte[]> data, List<byte[]> correctionBlocks)
+    {       
+        var sb = new StringBuilder();
+        ScanData(data, sb);
+        ScanData(correctionBlocks, sb);
         return sb.ToString();
     }
 
@@ -912,7 +751,22 @@ internal static class QrCodeBuilder2
         {(CorrectionLevel.H, QR.V6), 480},
         {(CorrectionLevel.Q, QR.V6), 608},        
         {(CorrectionLevel.M, QR.V6), 864},
-        {(CorrectionLevel.L, QR.V6), 1088} 
+        {(CorrectionLevel.L, QR.V6), 1088}, 
+
+        {(CorrectionLevel.H, QR.V7), 528},
+        {(CorrectionLevel.Q, QR.V7), 704},
+        {(CorrectionLevel.M, QR.V7), 992},
+        {(CorrectionLevel.L, QR.V7), 1248},
+
+        {(CorrectionLevel.H, QR.V8), 688},
+        {(CorrectionLevel.Q, QR.V8), 880},
+        {(CorrectionLevel.M, QR.V8), 1232},
+        {(CorrectionLevel.L, QR.V8), 1552},
+
+        {(CorrectionLevel.H, QR.V9), 800},
+        {(CorrectionLevel.Q, QR.V9), 1056},
+        {(CorrectionLevel.M, QR.V9), 1456},
+        {(CorrectionLevel.L, QR.V9), 1856},
     };
     
     private static (CorrectionLevel correctionLevel, QR version) GetCorrectionLevelAndVersion(int length, QR version, CorrectionLevel? needCorrectionLevel = null)
@@ -920,31 +774,26 @@ internal static class QrCodeBuilder2
         if (version == NA)
             throw new NotSupportedException("QR-code version start with 1!");
 
-        if ((int)version > 6)
+        if ((int)version > 9)
             throw new NotSupportedException($"Current QR-code does not support version {version} yet!");
 
         if (needCorrectionLevel.HasValue)
         {
-            foreach (var found in _maxData.Where(v => v.Key.version == version && v.Key.correctionLevel == needCorrectionLevel.Value))
+            foreach (var found in _maxData
+                .Where(v => v.Key.version == version && v.Key.correctionLevel == needCorrectionLevel.Value)
+                .Where(l => length < l.Value))
             {
-                if (length < found.Value)
-                {
-                    if (_correctionLevelBlocksCount[found.Key.correctionLevel][(byte)version] == 1)
-                        return (found.Key.correctionLevel, version);
-                }               
+                return (found.Key.correctionLevel, version);
             }
         }
 
         foreach (var pair in _maxData.Where(v => v.Key.version == version))
         {
             if (length < pair.Value)
-            {
-                if (_correctionLevelBlocksCount[pair.Key.correctionLevel][(byte)version] == 1)
-                    return (pair.Key.correctionLevel, version);
-            }               
+                return (pair.Key.correctionLevel, version);               
         }
 
-        if ((int)version > 6)
+        if ((int)version > 9)
             throw new NotSupportedException($"Current QR-code does not support data length {length} yet!");
         
         return GetCorrectionLevelAndVersion(length, version + 1);
@@ -1000,8 +849,6 @@ internal static class QrCodeBuilder2
         return matrix;      
     }
 
-    private const byte o = 0, W= 0, A = 10, B = 11, C = 12, D = 13, E = 14, F = 15;
-
     private static readonly Pair[] _masksAndCorrectionLevelTopLeftTemplate = [
                                                                               (02, 10), (03, 10), (04, 10), 
                                                                               (05, 10), (06, 10), (07, 10), 
@@ -1013,11 +860,11 @@ internal static class QrCodeBuilder2
     private static Pair[] CalcMasksAndCorrectionLevelSecondTemplate(QR version)
     {
         var offset = 11 + (int)version * 4;
-        return [(10, offset+7), (10, offset+6), (10, offset+5), 
-                (10, offset+4), (10, offset+3), (10, offset+2), 
-                (10, offset+1), (10, offset), (offset+1, 10),
-                (offset+2, 10), (offset+3, 10), (offset+4, 10),
-                (offset+5, 10), (offset+6, 10), (offset+7, 10)];               
+        return [(10, offset + 7), (10, offset +6 ), (10, offset + 5), 
+                (10, offset + 4), (10, offset + 3), (10, offset + 2), 
+                (10, offset + 1), (10, offset), (offset + 1, 10),
+                (offset + 2, 10), (offset + 3, 10), (offset + 4, 10),
+                (offset + 5, 10), (offset + 6, 10), (offset + 7, 10)];               
     }
 
     /// <summary>
@@ -1045,7 +892,7 @@ internal static class QrCodeBuilder2
 
     #endregion
 
-    #region Mask
+    #region Place Mask
 
     private static bool Mask0((int x, int y) m) => (m.x + m.y) % 2 == 0;
     private static bool Mask1((int x, int y) m) => m.y % 2 == 0;
@@ -1156,45 +1003,13 @@ internal static class QrCodeBuilder2
         return (Math.Abs((int)score) * BORDER + mask.score, mask.matrix);
     }
 
-    private static List<byte[]> CreateMatrix(this QrCodeData data, int maskNum, bool invert)
-    {
-        var size = GetMatrixSizeForVersion(data.Version);
-        var tmp = CreateQrCodeMatrix(size)    
-             //             CreateOrderMatrix(data.Version).InvertMatrix()                 
-            .PutDataInMatrix(data.Data, data.Version)            
-            .MaskInvertMatrix(GetMatrixMask(maskNum))  
-            .AddMaskNumAndCorrectionLevel(data.CorrectionLevel, data.Version, maskNum)
-            ;
-
-        int posX1 = BORDER + 3;
-        int posX2 = tmp.Count - BORDER - 5;
-        int posY = BORDER + 3;
-
-        tmp.AddTiming()
-           .AddPosition(posX1, posY)
-           .AddPosition(posX1, tmp[0].Length - BORDER - 4)            
-           .AddPosition(posX2, posY)
-           .Fill(posX2 - 4, posY + 5, 0);
-        
-        if ((byte)data.Version > 1)
-        {
-           var pos = _alignmentsPosition[data.Version];
-           tmp.AddAlignment(pos + BORDER, pos + BORDER);
-        };
-
-        if (invert)
-            tmp.InvertMatrix();
-
-        return tmp;
-    }
-    
     /// <summary>
     /// Наилучшая матрица из 8 масок
     /// </summary>
-    private static List<byte[]> GetBestMatrix(this QrCodeData data, bool invert)
+    private static List<byte[]> GetBestMatrix(this QrCodeData data)
         => Enumerable
             .Range(0, 8)
-            .Select(maskNumber => (0, data.CreateMatrix(maskNumber, invert))
+            .Select(maskNumber => (0, data.CreateMatrix(maskNumber))
                 .ScoreByRule1()
                 .ScoreByRule4())
             .MinBy(x=>x.score).matrix;

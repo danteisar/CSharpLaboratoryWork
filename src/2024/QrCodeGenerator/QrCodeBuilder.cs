@@ -416,18 +416,18 @@ public static class QrCodeBuilder
         throw new NotSupportedException("Current version of QR-code does not support that data length!");
     }
 
-    private static readonly Dictionary<CodeType, byte> _codeTypeSize = new()
+    private static readonly Dictionary<EncodedType, byte> _codeTypeSize = new()
     {
-        {CodeType.Numeric, 10},
-        {CodeType.AlphaNumeric, 9},
-        {CodeType.Binary, 8}
+        {EncodedType.Numeric, 10},
+        {EncodedType.AlphaNumeric, 9},
+        {EncodedType.Binary, 8}
     };
 
-    private static readonly Dictionary<CodeType, string> _codeTypeMode = new()
+    private static readonly Dictionary<EncodedType, string> _codeTypeMode = new()
     {
-        {CodeType.Numeric, "0001"},
-        {CodeType.AlphaNumeric, "0010"},
-        {CodeType.Binary, "0100"}
+        {EncodedType.Numeric, "0001"},
+        {EncodedType.AlphaNumeric, "0010"},
+        {EncodedType.Binary, "0100"}
     };
 
     private static readonly Dictionary<byte, byte> _matrixSizeByVersion = new()
@@ -438,13 +438,13 @@ public static class QrCodeBuilder
         {4, 33 + 4}
     };
 
-    private static string GetDataAmount(CodeType codeType, int size)
+    private static string GetDataAmount(EncodedType codeType, int size)
     {
         var str = Convert.ToString(size, 2);
         return str.PadLeft(_codeTypeSize[codeType], '0');
     }
     
-    private static string GetServiceInformation(CodeType codeType, string text)
+    private static string GetServiceInformation(EncodedType codeType, string text)
     {
         return _codeTypeMode[codeType] + GetDataAmount(codeType, text.Length);       
     }
@@ -597,7 +597,7 @@ public static class QrCodeBuilder
         return sb.ToString();
     }
         
-    public static string GetQrCode(string text, byte qrCodeVersion = 1, CodeType codeType = CodeType.Binary)
+    public static string GetQrCode(string text, byte qrCodeVersion = 1, EncodedType codeType = EncodedType.Binary)
     {
         // Создание матрицы QR кода           
         var qrCodeMatrix = CreateQrCodeMatrix(_matrixSizeByVersion[qrCodeVersion]);
@@ -605,8 +605,8 @@ public static class QrCodeBuilder
         var sb = new StringBuilder();        
         sb.Append(GetServiceInformation(codeType, text));        
         var tmp = codeType switch {
-            CodeType.AlphaNumeric => CodeLetterDigital(text.ToUpper()),
-            CodeType.Numeric => CodeDigital(text),
+            EncodedType.AlphaNumeric => CodeLetterDigital(text.ToUpper()),
+            EncodedType.Numeric => CodeDigital(text),
             _ => CodeBytes(text)
         };
         foreach (var str in tmp)

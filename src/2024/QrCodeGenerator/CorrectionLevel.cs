@@ -6,19 +6,19 @@ namespace QrCodeGenerator;
 public enum CorrectionLevel : byte
 {
     /// <summary>
-    /// 7 % Low
+    /// 7 % Low 00
     /// </summary>
-    L,
+    L, 
     /// <summary>
-    /// 15 % Medium
+    /// 15 % Medium 01
     /// </summary>
     M,
     /// <summary>
-    /// 25 % Quartile
+    /// 25 % Quartile 10
     /// </summary>
     Q,
     /// <summary>
-    /// 30 % High
+    /// 30 % High 11
     /// </summary>
     H
 }
