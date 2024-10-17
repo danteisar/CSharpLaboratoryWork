@@ -11,7 +11,7 @@
 //  █ ███ █ ▀  █▄ ▀▄▄█▄▄█
 //  █ ▀▀▀ █  █▄▀ ▄█ █▀   
 //  ▀▀▀▀▀▀▀ ▀ ▀ ▀▀▀▀ ▀  ▀
-public class QrCode(string text, EncodingMode encodingMode = EncodingMode.Binary, QR qrCodeVersion = QR.V1, EccLevel? correctionLevel = null, Mask? maskNum = null, bool invert = false)
+public class QrCode(string text, EncodingMode encodingMode = EncodingMode.Binary, EccLevel? correctionLevel = null, QR qrCodeVersion = QR.V1, Mask? maskNum = null, bool invert = false)
 {
    
     public string Text { get; } = text;
