@@ -1,9 +1,9 @@
 namespace QrCodeGenerator;
 
 /// <summary>
-/// QR Code encoding Type of data
+/// QR Code encoding mode
 /// </summary>
-public enum EncodedType : byte
+public enum EncodingMode : byte
 {
     /// <summary>
     /// Numbers only

@@ -8,14 +8,14 @@ internal static class QrCodeBuilder2
 
     #region GET
 
-    public static string GetQrCode(string text, ref QR qrCodeVersion, EncodedType codeType, ref CorrectionLevel? needCorrectionLevel, int? maskNum = null, bool invert = false)
+    public static string GetQrCode(string text, ref QR qrCodeVersion, EncodingMode codeType, ref EccLevel? needCorrectionLevel, ref Mask? maskNum, bool invert = false)
     {    
         // Блоки с данными
         var sb = new StringBuilder();        
-        sb.Append(GetServiceInformation(codeType, text));        
+        sb.Append(GetServiceInformation(codeType, qrCodeVersion, text));        
         var tmp = codeType switch {
-            EncodedType.AlphaNumeric => EncodeAlphaNumeric(text.ToUpper()),
-            EncodedType.Numeric => EncodeNumeric(text),
+            EncodingMode.AlphaNumeric => EncodeAlphaNumeric(text.ToUpper()),
+            EncodingMode.Numeric => EncodeNumeric(text),
             _ => EncodeBinary(text)
         };
         foreach (var str in tmp)
@@ -50,7 +50,7 @@ internal static class QrCodeBuilder2
 
         var qrCodeMatrix = maskNum.HasValue
             ? qrCodeData.CreateMatrix(maskNum.Value)
-            : qrCodeData.GetBestMatrix();
+            : qrCodeData.GetBestMatrix(ref maskNum);
 
         return BuildString(qrCodeMatrix, invert);
     }
@@ -63,6 +63,10 @@ internal static class QrCodeBuilder2
     /// Граница в два модуля вокруг QR-кода
     /// </summary>
     private const int BORDER = 2;
+   
+    /// <summary>
+    /// Размер рамки для позиционирования QR кода при сканировании
+    /// </summary>
     private const int POSITION_DETECTION = 8;
 
     /// <summary>
@@ -86,13 +90,17 @@ internal static class QrCodeBuilder2
     private static string BuildString(this List<byte[]> matrix, bool invert)
     {
         var sb = new StringBuilder();
-        for (int y = 0; y<matrix.Count; y+=2)
+        var length = matrix.Count % 2 == 1 ? matrix.Count + 1 : matrix.Count;
+
+        for (int row = 0; row < length; row+=2)
         {
-            for(int x = 0; x<matrix[0].Length; x++)
+            for(int column = 0; column < matrix[0].Length; column++)
             {
+                byte scanByte = row < matrix.Count ? matrix[row+1][column] : ACTIVE;
+
                 var c = invert 
-                    ? ScanInvert(matrix[y][x], matrix[y+1][x])
-                    : Scan(matrix[y][x], matrix[y+1][x]);
+                    ? ScanInvert(matrix[row][column], scanByte)
+                    : Scan(matrix[row][column], scanByte);
 
                 sb.Append(c);  
             }
@@ -231,7 +239,18 @@ internal static class QrCodeBuilder2
         {QR.V6, [34]},
         {QR.V7, [6, 22, 38]},
         {QR.V8, [6, 24, 42]},
-        {QR.V9, [6, 26, 46]}
+        {QR.V9, [6, 26, 46]},        
+        {QR.V10, [6, 28, 50]},
+        {QR.V11, [6, 30, 54]},
+        {QR.V12, [6, 32, 58]},
+        {QR.V13, [6, 34, 62]},
+        {QR.V14, [6, 26, 46, 66]},
+        {QR.V15, [6, 26, 48, 70]},
+        {QR.V16, [6, 26, 50, 74]},
+        {QR.V17, [6, 30, 54, 78]},
+        {QR.V18, [6, 30, 56, 82]},
+        {QR.V19, [6, 30, 58, 86]},
+        {QR.V20, [6, 34, 62, 90]},
     };
 
     private static readonly Dictionary<QR, string> _versionCodes = new()
@@ -275,6 +294,9 @@ internal static class QrCodeBuilder2
         //                    000010     ▄
         //                    110111 ▀█▄▀▀▀
         {QR.V19, "000010110111011000"},
+        //                    000000     
+        //                    101001 █▄█▄▄▀
+        {QR.V20, "000000101001111110"},
     };
 
     private static List<byte[]> FillVersion(this List<byte[]> matrix, QR qrCodeVersion, bool isMask = false)
@@ -301,7 +323,7 @@ internal static class QrCodeBuilder2
     /// <summary>
     /// Готовая матрица QR-кода
     /// </summary>
-    private static List<byte[]> CreateMatrix(this QrCodeData data, int maskNum)
+    private static List<byte[]> CreateMatrix(this QrCodeData data, Mask maskNum)
     {
         var size = GetMatrixSizeForVersion(data.Version);
         var tmp = CreateQrCodeMatrix(size)                    
@@ -434,20 +456,6 @@ internal static class QrCodeBuilder2
 
     #region Encode Data
 
-    private static readonly Dictionary<EncodedType, string> _codeTypeMode = new()
-    {
-        {EncodedType.Numeric,      "0001"},
-        {EncodedType.AlphaNumeric, "0010"},
-        {EncodedType.Binary,       "0100"}
-    };
-
-    private static readonly Dictionary<EncodedType, byte> _codeTypeSize = new()
-    {
-        {EncodedType.Numeric, 10},
-        {EncodedType.AlphaNumeric, 9},
-        {EncodedType.Binary, 8}
-    };
-
     private static readonly char[] letterNumberArray = {
                                                     '0','1','2','3','4','5','6','7','8','9',
                                                     'A','B','C','D','E','F','G','H','I','J',
@@ -495,8 +503,7 @@ internal static class QrCodeBuilder2
         {
             AddTo(res, Convert.ToInt32(text.Substring(length - 3, 2)), 7);
         }
-        else
-        if (text.Length % 3 == 1)
+        else if (text.Length % 3 == 1)
         {
             AddTo(res, Convert.ToInt32(text.Substring(length - 2, 1)), 4);
         }
@@ -514,20 +521,46 @@ internal static class QrCodeBuilder2
         return res;
     }
 
-    private static string GetDataLength(EncodedType codeType, string text)
+    private static readonly Dictionary<EncodingMode, string> _codeTypeMode = new()
+    {
+        {EncodingMode.Numeric,      "0001"},
+        {EncodingMode.AlphaNumeric, "0010"},
+        {EncodingMode.Binary,       "0100"}
+    };
+
+    private static byte GetDataLengthBlockSize(EncodingMode mode, QR version)
+    {
+        return ((int)version, mode) switch
+        {
+            (< 10, EncodingMode.Numeric) => 10,
+            (< 10, EncodingMode.AlphaNumeric) => 9,
+            (< 10, EncodingMode.Binary) => 8,
+            (< 27, EncodingMode.Numeric) => 12,
+            (< 27, EncodingMode.AlphaNumeric) => 11,
+            (< 27, EncodingMode.Binary) => 16,
+            (< 27, _) => 10,
+            (_, EncodingMode.Numeric) => 14,
+            (_, EncodingMode.AlphaNumeric) => 13,
+            (_, EncodingMode.Binary) => 16,
+            (_, _) => 12,
+        };
+    }
+
+    private static string GetDataLength(EncodingMode codeType, QR version, string text)
     {
         var length = codeType switch
         {
-            EncodedType.Binary => Encoding.UTF8.GetBytes(text).Length,
+            EncodingMode.Binary => Encoding.UTF8.GetBytes(text).Length,
             _ => text.Length,
         };
-        var str = Convert.ToString(length, 2).PadLeft(_codeTypeSize[codeType], '0');
+        var size = GetDataLengthBlockSize(codeType, version);
+        var str = Convert.ToString(length, 2).PadLeft(size, '0');
         return str;
     }
     
-    private static string GetServiceInformation(EncodedType codeType, string text)
+    private static string GetServiceInformation(EncodingMode codeType, QR version, string text)
     { 
-        return _codeTypeMode[codeType] + GetDataLength(codeType, text);       
+        return _codeTypeMode[codeType] + GetDataLength(codeType, version, text);       
     }
 
     private static readonly string[] _magicTextArray = ["11101100", "00010001"];
@@ -551,10 +584,10 @@ internal static class QrCodeBuilder2
         return sb.ToString(); 
     }
 
-    private static IEnumerable<string> SplitText(this string text, int chunkSize)
+    private static IEnumerable<string> SplitText(this string text, int length)
     {
-        return Enumerable.Range(0, text.Length / chunkSize)
-            .Select(i => text.Substring(i * chunkSize, chunkSize));
+        return Enumerable.Range(0, text.Length / length)
+            .Select(i => text.Substring(i * length, length));
     }
 
     private static List<byte[]> SplitByBlock(string text, int blocksCount)
@@ -591,20 +624,20 @@ internal static class QrCodeBuilder2
 
     #region Correction Data
 
-    private static readonly Dictionary<CorrectionLevel, byte[]> _correctionLevelBytesSize = new()
+    private static readonly Dictionary<EccLevel, byte[]> _correctionLevelBytesSize = new()
     {
-        {CorrectionLevel.L, [NA,07,10,15,20,26,18,20,24,30]},
-        {CorrectionLevel.M, [NA,10,16,26,18,24,16,18,22,22]},
-        {CorrectionLevel.Q, [NA,13,22,18,26,18,24,18,22,20]},
-        {CorrectionLevel.H, [NA,17,28,22,16,22,28,26,26,24]},
+        {EccLevel.L, [NA,07,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28]},
+        {EccLevel.M, [NA,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26]},
+        {EccLevel.Q, [NA,13,22,18,26,18,24,18,22,20,24,28,26,24,20,30,24,28,28,26,30]},
+        {EccLevel.H, [NA,17,28,22,16,22,28,26,26,24,28,24,28,22,24,24,30,28,28,26,28]},
     };
 
-    private static readonly Dictionary<CorrectionLevel, byte[]> _correctionLevelBlocksCount = new()
+    private static readonly Dictionary<EccLevel, byte[]> _correctionLevelBlocksCount = new()
     {
-        {CorrectionLevel.L, [NA,1,1,1,1,1,2,2,2,6]},
-        {CorrectionLevel.M, [NA,1,1,1,2,2,4,4,4,5]},
-        {CorrectionLevel.Q, [NA,1,1,2,2,4,4,6,6,8]},
-        {CorrectionLevel.H, [NA,1,1,2,4,4,4,5,6,8]},
+        {EccLevel.L, [NA,1,1,1,1,1,2,2,2,2,4,4,4,4,4,4,6,6,6,6,7,8]},
+        {EccLevel.M, [NA,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16]},
+        {EccLevel.Q, [NA,1,1,2,2,4,4,6,6,8,8,8,10,12,16,12,17,16,18,21,20]},
+        {EccLevel.H, [NA,1,1,2,4,4,4,5,6,8,8,11,11,16,16,16,18,16,19,21,25,25]},
     };
 
     private static readonly Dictionary<byte, byte[]> _correctionLevelGeneratingPolynomial = new()
@@ -624,42 +657,45 @@ internal static class QrCodeBuilder2
         {30, [41, 173, 145, 152, 216, 31, 179, 182, 50, 48, 110, 86, 239, 96, 222, 125, 42, 173, 226, 193, 224, 130, 156, 37, 251, 216, 238, 40, 192, 180]},
     };
 
-    private static readonly byte[] _galuaField = [1,2,4,8,16,32,64,128,29,58,116,232,205,135,19,38,
-                                                  76,152,45,90,180,117,234,201,143,3,6,12,24,48,96,192,
-                                                  157,39,78,156,37,74,148,53,106,212,181,119,238,193,159,35,
-                                                  70,140,5,10,20,40,80,160,93,186,105,210,185,111,222,161,
-                                                  95,190,97,194,153,47,94,188,101,202,137,15,30,60,120,240,
-                                                  253,231,211,187,107,214,177,127,254,225,223,163,91,182,113,226,
-                                                  217,175,67,134,17,34,68,136,13,26,52,104,208,189,103,206,
-                                                  129,31,62,124,248,237,199,147,59,118,236,197,151,51,102,204,
-                                                  133,23,46,92,184,109,218,169,79,158,33,66,132,21,42,84,
-                                                  168,77,154,41,82,164,85,170,73,146,57,114,228,213,183,115,
-                                                  230,209,191,99,198,145,63,126,252,229,215,179,123,246,241,255,
-                                                  227,219,171,75,150,49,98,196,149,55,110,220,165,87,174,65,
-                                                  130,25,50,100,200,141,7,14,28,56,112,224,221,167,83,166,
-                                                  81,162,89,178,121,242,249,239,195,155,43,86,172,69,138,9,
-                                                  18,36,72,144,61,122,244,245,247,243,251,235,203,139,11,22,
-                                                  44,88,176,125,250,233,207,131,27,54,108,216,173,71,142,1
+    private static readonly byte[] _galoisField = [1, 2, 4, 8, 16, 32, 64, 128, 29, 58, 116, 232, 205, 135, 19, 38, 
+                                                  76, 152, 45, 90, 180, 117, 234, 201, 143, 3, 6, 12, 24, 48, 96, 192, 
+                                                  157, 39, 78, 156, 37, 74, 148, 53, 106, 212, 181, 119, 238, 193, 159, 35, 
+                                                  70, 140, 5, 10, 20, 40, 80, 160, 93, 186, 105, 210, 185, 111, 222, 161, 
+                                                  95, 190, 97, 194, 153, 47, 94, 188, 101, 202, 137, 15, 30, 60, 120, 240, 
+                                                  253, 231, 211, 187, 107, 214, 177, 127, 254, 225, 223, 163, 91, 182, 113, 226, 
+                                                  217, 175, 67, 134, 17, 34, 68, 136, 13, 26, 52, 104, 208, 189, 103, 206, 
+                                                  129, 31, 62, 124, 248, 237, 199, 147, 59, 118, 236, 197, 151, 51, 102, 204, 
+                                                  133, 23, 46, 92, 184, 109, 218, 169, 79, 158, 33, 66, 132, 21, 42, 84, 
+                                                  168, 77, 154, 41, 82, 164, 85, 170, 73, 146, 57, 114, 228, 213, 183, 115, 
+                                                  230, 209, 191, 99, 198, 145, 63, 126, 252, 229, 215, 179, 123, 246, 241, 255, 
+                                                  227, 219, 171, 75, 150, 49, 98, 196, 149, 55, 110, 220, 165, 87, 174, 65, 
+                                                  130, 25, 50, 100, 200, 141, 7, 14, 28, 56, 112, 224, 221, 167, 83, 166, 
+                                                  81, 162, 89, 178, 121, 242, 249, 239, 195, 155, 43, 86, 172, 69, 138, 9, 
+                                                  18, 36, 72, 144, 61, 122, 244, 245, 247, 243, 251, 235, 203, 139, 11, 22, 
+                                                  44, 88, 176, 125, 250, 233, 207, 131, 27, 54, 108, 216, 173, 71, 142, 1
                                                  ];
 
-    private static readonly byte[] _backGaluaField = [0,1,25,2,50,26,198,3,223,51,238,27,104,199,75,
-                                                      4,100,224,14,52,141,239,129,28,193,105,248,200,8,76,113,
-                                                      5,138,101,47,225,36,15,33,53,147,142,218,240,18,130,69,
-                                                      29,181,194,125,106,39,249,185,201,154,9,120,77,228,114,166,
-                                                      6,191,139,98,102,221,48,253,226,152,37,179,16,145,34,136,
-                                                      54,208,148,206,143,150,219,189,241,210,19,92,131,56,70,64,
-                                                      30,66,182,163,195,72,126,110,107,58,40,84,250,133,186,61,
-                                                      202,94,155,159,10,21,121,43,78,212,229,172,115,243,167,87,
-                                                      7,112,192,247,140,128,99,13,103,74,222,237,49,197,254,24,
-                                                      227,165,153,119,38,184,180,124,17,68,146,217,35,32,137,46,
-                                                      55,63,209,91,149,188,207,205,144,135,151,178,220,252,190,97,
-                                                      242,86,211,171,20,42,93,158,132,60,57,83,71,109,65,162,
-                                                      31,45,67,216,183,123,164,118,196,23,73,236,127,12,111,246,
-                                                      108,161,59,82,41,157,85,170,251,96,134,177,187,204,62,90,
-                                                      203,89,95,176,156,169,160,81,11,245,22,235,122,117,44,215,
-                                                      79,174,213,233,230,231,173,232,116,214,244,234,168,80,88,175
+    private static readonly byte[] _backGaloisField = [NA,0, 0, 1, 25, 2, 50, 26, 198, 3, 223, 51, 238, 27, 104, 199, 75, 
+                                                      4, 100, 224, 14, 52, 141, 239, 129, 28, 193, 105, 248, 200, 8, 76, 113, 
+                                                      5, 138, 101, 47, 225, 36, 15, 33, 53, 147, 142, 218, 240, 18, 130, 69, 
+                                                      29, 181, 194, 125, 106, 39, 249, 185, 201, 154, 9, 120, 77, 228, 114, 166, 
+                                                      6, 191, 139, 98, 102, 221, 48, 253, 226, 152, 37, 179, 16, 145, 34, 136, 
+                                                      54, 208, 148, 206, 143, 150, 219, 189, 241, 210, 19, 92, 131, 56, 70, 64, 
+                                                      30, 66, 182, 163, 195, 72, 126, 110, 107, 58, 40, 84, 250, 133, 186, 61, 
+                                                      202, 94, 155, 159, 10, 21, 121, 43, 78, 212, 229, 172, 115, 243, 167, 87, 
+                                                      7, 112, 192, 247, 140, 128, 99, 13, 103, 74, 222, 237, 49, 197, 254, 24, 
+                                                      227, 165, 153, 119, 38, 184, 180, 124, 17, 68, 146, 217, 35, 32, 137, 46, 
+                                                      55, 63, 209, 91, 149, 188, 207, 205, 144, 135, 151, 178, 220, 252, 190, 97, 
+                                                      242, 86, 211, 171, 20, 42, 93, 158, 132, 60, 57, 83, 71, 109, 65, 162, 
+                                                      31, 45, 67, 216, 183, 123, 164, 118, 196, 23, 73, 236, 127, 12, 111, 246, 
+                                                      108, 161, 59, 82, 41, 157, 85, 170, 251, 96, 134, 177, 187, 204, 62, 90, 
+                                                      203, 89, 95, 176, 156, 169, 160, 81, 11, 245, 22, 235, 122, 117, 44, 215, 
+                                                      79, 174, 213, 233, 230, 231, 173, 232, 116, 214, 244, 234, 168, 80, 88, 175
                                                     ];
     
+    /// <summary>
+    /// TODO
+    /// </summary>
     private static byte[] GetCorrectionBlock(byte[] block, byte bytesSize)
     {       
         var size = Math.Max(block.Length, bytesSize);
@@ -677,13 +713,13 @@ internal static class QrCodeBuilder2
             m.RemoveAt(0);
             m.Add(0);
 
-            byte b = _backGaluaField[a-1];
+            byte b = _backGaloisField[a];
             for (int x = 0; x < g.Length; x++)
             {
                 var c = g[x] + b;
                 if (c > 254)
                     c %= 255;
-                var d = _galuaField[c];
+                var d = _galoisField[c];
                 m[x] = (byte)(d ^ m[x]);
             }
         }
@@ -721,60 +757,39 @@ internal static class QrCodeBuilder2
         return sb.ToString();
     }
 
-    private static readonly Dictionary<(CorrectionLevel correctionLevel, QR version), int> _maxData = new()
+    private static readonly Dictionary<(EccLevel correctionLevel, QR version), int> _maxData = new()
     {
-        {(CorrectionLevel.H, QR.V1), 072},  
-        {(CorrectionLevel.Q, QR.V1), 104}, 
-        {(CorrectionLevel.M, QR.V1), 128},
-        {(CorrectionLevel.L, QR.V1), 152},
-
-        {(CorrectionLevel.H, QR.V2), 128},  
-        {(CorrectionLevel.Q, QR.V2), 176}, 
-        {(CorrectionLevel.M, QR.V2), 224},
-        {(CorrectionLevel.L, QR.V2), 272},  
-
-        {(CorrectionLevel.H, QR.V3), 208},
-        {(CorrectionLevel.Q, QR.V3), 272},
-        {(CorrectionLevel.M, QR.V3), 352},
-        {(CorrectionLevel.L, QR.V3), 440},
-
-        {(CorrectionLevel.H, QR.V4), 288},
-        {(CorrectionLevel.Q, QR.V4), 384},
-        {(CorrectionLevel.M, QR.V4), 512},
-        {(CorrectionLevel.L, QR.V4), 640},
-
-        {(CorrectionLevel.H, QR.V5), 368},
-        {(CorrectionLevel.Q, QR.V5), 496},
-        {(CorrectionLevel.M, QR.V5), 688},
-        {(CorrectionLevel.L, QR.V5), 864},
-
-        {(CorrectionLevel.H, QR.V6), 480},
-        {(CorrectionLevel.Q, QR.V6), 608},        
-        {(CorrectionLevel.M, QR.V6), 864},
-        {(CorrectionLevel.L, QR.V6), 1088}, 
-
-        {(CorrectionLevel.H, QR.V7), 528},
-        {(CorrectionLevel.Q, QR.V7), 704},
-        {(CorrectionLevel.M, QR.V7), 992},
-        {(CorrectionLevel.L, QR.V7), 1248},
-
-        {(CorrectionLevel.H, QR.V8), 688},
-        {(CorrectionLevel.Q, QR.V8), 880},
-        {(CorrectionLevel.M, QR.V8), 1232},
-        {(CorrectionLevel.L, QR.V8), 1552},
-
-        {(CorrectionLevel.H, QR.V9), 800},
-        {(CorrectionLevel.Q, QR.V9), 1056},
-        {(CorrectionLevel.M, QR.V9), 1456},
-        {(CorrectionLevel.L, QR.V9), 1856},
+        {(EccLevel.H, QR.V1),    72}, {(EccLevel.Q, QR.V1),   104}, {(EccLevel.M, QR.V1),   128}, {(EccLevel.L, QR.V1),   152},
+        {(EccLevel.H, QR.V2),   128}, {(EccLevel.Q, QR.V2),   176}, {(EccLevel.M, QR.V2),   224}, {(EccLevel.L, QR.V2),   272},  
+        {(EccLevel.H, QR.V3),   208}, {(EccLevel.Q, QR.V3),   272}, {(EccLevel.M, QR.V3),   352}, {(EccLevel.L, QR.V3),   440},
+        {(EccLevel.H, QR.V4),   288}, {(EccLevel.Q, QR.V4),   384}, {(EccLevel.M, QR.V4),   512}, {(EccLevel.L, QR.V4),   640},
+        {(EccLevel.H, QR.V5),   368}, {(EccLevel.Q, QR.V5),   496}, {(EccLevel.M, QR.V5),   688}, {(EccLevel.L, QR.V5),   864},
+        {(EccLevel.H, QR.V6),   480}, {(EccLevel.Q, QR.V6),   608}, {(EccLevel.M, QR.V6),   864}, {(EccLevel.L, QR.V6),  1088},
+        {(EccLevel.H, QR.V7),   528}, {(EccLevel.Q, QR.V7),   704}, {(EccLevel.M, QR.V7),   992}, {(EccLevel.L, QR.V7),  1248},
+        {(EccLevel.H, QR.V8),   688}, {(EccLevel.Q, QR.V8),   880}, {(EccLevel.M, QR.V8),  1232}, {(EccLevel.L, QR.V8),  1552},
+        {(EccLevel.H, QR.V9),   800}, {(EccLevel.Q, QR.V9),  1056}, {(EccLevel.M, QR.V9),  1456}, {(EccLevel.L, QR.V9),  1856},
+        {(EccLevel.H, QR.V10),  976}, {(EccLevel.Q, QR.V10), 1232}, {(EccLevel.M, QR.V10), 1728}, {(EccLevel.L, QR.V10), 2192},        
+        {(EccLevel.H, QR.V11), 1120}, {(EccLevel.Q, QR.V11), 1440}, {(EccLevel.M, QR.V11), 2032}, {(EccLevel.L, QR.V11), 2592},    
+        {(EccLevel.H, QR.V12), 1264}, {(EccLevel.Q, QR.V12), 1648}, {(EccLevel.M, QR.V12), 2320}, {(EccLevel.L, QR.V12), 2960},    
+        {(EccLevel.H, QR.V13), 1440}, {(EccLevel.Q, QR.V13), 1952}, {(EccLevel.M, QR.V13), 2672}, {(EccLevel.L, QR.V13), 3424},    
+        {(EccLevel.H, QR.V14), 1576}, {(EccLevel.Q, QR.V14), 2088}, {(EccLevel.M, QR.V14), 2920}, {(EccLevel.L, QR.V14), 3688},    
+        {(EccLevel.H, QR.V15), 1784}, {(EccLevel.Q, QR.V15), 2360}, {(EccLevel.M, QR.V15), 3320}, {(EccLevel.L, QR.V15), 4184},    
+        {(EccLevel.H, QR.V16), 2024}, {(EccLevel.Q, QR.V16), 2600}, {(EccLevel.M, QR.V16), 3624}, {(EccLevel.L, QR.V16), 4712},    
+        {(EccLevel.H, QR.V17), 2264}, {(EccLevel.Q, QR.V17), 2936}, {(EccLevel.M, QR.V17), 4056}, {(EccLevel.L, QR.V17), 5176},    
+        {(EccLevel.H, QR.V18), 2504}, {(EccLevel.Q, QR.V18), 3176}, {(EccLevel.M, QR.V18), 4504}, {(EccLevel.L, QR.V18), 5768},    
+        {(EccLevel.H, QR.V19), 2728}, {(EccLevel.Q, QR.V19), 3560}, {(EccLevel.M, QR.V19), 5016}, {(EccLevel.L, QR.V19), 6360},    
+        {(EccLevel.H, QR.V20), 3080}, {(EccLevel.Q, QR.V20), 3880}, {(EccLevel.M, QR.V20), 5352}, {(EccLevel.L, QR.V20), 6888},    
     };
     
-    private static (CorrectionLevel correctionLevel, QR version) GetCorrectionLevelAndVersion(int length, QR version, CorrectionLevel? needCorrectionLevel = null)
+    /// <summary>
+    /// Выбор нужной версии QR-кода и уровня коррекции
+    /// </summary>
+    private static (EccLevel correctionLevel, QR version) GetCorrectionLevelAndVersion(int length, QR version, EccLevel? needCorrectionLevel = null)
     {
         if (version == NA)
             throw new NotSupportedException("QR-code version start with 1!");
 
-        if ((int)version > 9)
+        if ((int)version > 20)
             throw new NotSupportedException($"Current QR-code does not support version {version} yet!");
 
         if (needCorrectionLevel.HasValue)
@@ -787,13 +802,13 @@ internal static class QrCodeBuilder2
             }
         }
 
-        foreach (var pair in _maxData.Where(v => v.Key.version == version))
+        foreach (var pair in _maxData.Where(v => v.Key.version == version).OrderByDescending(x=>x.Key.correctionLevel))
         {
             if (length < pair.Value)
                 return (pair.Key.correctionLevel, version);               
         }
 
-        if ((int)version > 9)
+        if ((int)version > 20)
             throw new NotSupportedException($"Current QR-code does not support data length {length} yet!");
         
         return GetCorrectionLevelAndVersion(length, version + 1);
@@ -803,46 +818,46 @@ internal static class QrCodeBuilder2
 
     #region Service Information
 
-    private static readonly Dictionary<(CorrectionLevel correctionLevel, int maskNum), string> _masksAndCorrectionLevel = new()
+    private static readonly Dictionary<(EccLevel correctionLevel, Mask maskNum), string> _masksAndCorrectionLevel = new()
     {
-        {(CorrectionLevel.L, 0), "111011111000100"},
-        {(CorrectionLevel.L, 1), "111001011110011"},
-        {(CorrectionLevel.L, 2), "111110110101010"},
-        {(CorrectionLevel.L, 3), "111100010011101"},
-        {(CorrectionLevel.L, 4), "110011000101111"},
-        {(CorrectionLevel.L, 5), "110001100011000"},
-        {(CorrectionLevel.L, 6), "110110001000001"},
-        {(CorrectionLevel.L, 7), "110100101110110"},        
-        {(CorrectionLevel.M, 0), "101010000010010"},
-        {(CorrectionLevel.M, 1), "101000100100101"},
-        {(CorrectionLevel.M, 2), "101111001111100"},
-        {(CorrectionLevel.M, 3), "101101101001011"},
-        {(CorrectionLevel.M, 4), "100010111111001"},
-        {(CorrectionLevel.M, 5), "100000011001110"},
-        {(CorrectionLevel.M, 6), "100111110010111"},
-        {(CorrectionLevel.M, 7), "100101010100000"},        
-        {(CorrectionLevel.Q, 0), "011010101011111"},
-        {(CorrectionLevel.Q, 1), "011000001101000"},
-        {(CorrectionLevel.Q, 2), "011111100110001"},
-        {(CorrectionLevel.Q, 3), "011101000000110"},
-        {(CorrectionLevel.Q, 4), "010010010110100"},
-        {(CorrectionLevel.Q, 5), "010000110000011"},
-        {(CorrectionLevel.Q, 6), "010111011011010"},
-        {(CorrectionLevel.Q, 7), "010101111101101"},
-        {(CorrectionLevel.H, 0), "001011010001001"},
-        {(CorrectionLevel.H, 1), "001001110111110"},
-        {(CorrectionLevel.H, 2), "001110011100111"},
-        {(CorrectionLevel.H, 3), "001100111010000"},
-        {(CorrectionLevel.H, 4), "000011101100010"},
-        {(CorrectionLevel.H, 5), "000001001010101"},
-        {(CorrectionLevel.H, 6), "000110100001100"},
-        {(CorrectionLevel.H, 7), "000100000111011"},
+        {(EccLevel.L, Mask.M0), "111011111000100"},
+        {(EccLevel.L, Mask.M1), "111001011110011"},
+        {(EccLevel.L, Mask.M2), "111110110101010"},
+        {(EccLevel.L, Mask.M3), "111100010011101"},
+        {(EccLevel.L, Mask.M4), "110011000101111"},
+        {(EccLevel.L, Mask.M5), "110001100011000"},
+        {(EccLevel.L, Mask.M6), "110110001000001"},
+        {(EccLevel.L, Mask.M7), "110100101110110"},        
+        {(EccLevel.M, Mask.M0), "101010000010010"},
+        {(EccLevel.M, Mask.M1), "101000100100101"},
+        {(EccLevel.M, Mask.M2), "101111001111100"},
+        {(EccLevel.M, Mask.M3), "101101101001011"},
+        {(EccLevel.M, Mask.M4), "100010111111001"},
+        {(EccLevel.M, Mask.M5), "100000011001110"},
+        {(EccLevel.M, Mask.M6), "100111110010111"},
+        {(EccLevel.M, Mask.M7), "100101010100000"},        
+        {(EccLevel.Q, Mask.M0), "011010101011111"},
+        {(EccLevel.Q, Mask.M1), "011000001101000"},
+        {(EccLevel.Q, Mask.M2), "011111100110001"},
+        {(EccLevel.Q, Mask.M3), "011101000000110"},
+        {(EccLevel.Q, Mask.M4), "010010010110100"},
+        {(EccLevel.Q, Mask.M5), "010000110000011"},
+        {(EccLevel.Q, Mask.M6), "010111011011010"},
+        {(EccLevel.Q, Mask.M7), "010101111101101"},
+        {(EccLevel.H, Mask.M0), "001011010001001"},
+        {(EccLevel.H, Mask.M1), "001001110111110"},
+        {(EccLevel.H, Mask.M2), "001110011100111"},
+        {(EccLevel.H, Mask.M3), "001100111010000"},
+        {(EccLevel.H, Mask.M4), "000011101100010"},
+        {(EccLevel.H, Mask.M5), "000001001010101"},
+        {(EccLevel.H, Mask.M6), "000110100001100"},
+        {(EccLevel.H, Mask.M7), "000100000111011"},
     };
 
     /// <summary>
     /// Информация о маске и уровне коррекции
     /// </summary>
-    private static List<byte[]> AddMaskNumAndCorrectionLevel(this List<byte[]> matrix, CorrectionLevel level, QR version, int maskNum)
+    private static List<byte[]> AddMaskNumAndCorrectionLevel(this List<byte[]> matrix, EccLevel level, QR version, Mask maskNum)
     {
         var maskNumAndCorrectionLevel = _masksAndCorrectionLevel[(level, maskNum)];        
         PutInMatrix(matrix, maskNumAndCorrectionLevel, version);
@@ -906,17 +921,18 @@ internal static class QrCodeBuilder2
     /// <summary>
     /// Получение маски для инвертирования модулей
     /// </summary>
-    private static Predicate<(int,int)> GetMatrixMask(int makNum = 2)
+    private static Predicate<(int,int)> GetMatrixMask(Mask makNum = Mask.M2)
      => makNum switch 
         {
-            0 => Mask0,
-            1 => Mask1,    
-            2 => Mask2,
-            3 => Mask3,
-            4 => Mask4,
-            5 => Mask5,
-            6 => Mask6,
-            _ => Mask7
+            Mask.M0 => Mask0,
+            Mask.M1 => Mask1,    
+            Mask.M2 => Mask2,
+            Mask.M3 => Mask3,
+            Mask.M4 => Mask4,
+            Mask.M5 => Mask5,
+            Mask.M6 => Mask6,
+            Mask.M7 => Mask7,
+            _ => throw new ArgumentOutOfRangeException("Incorrect Mask Number")
         };
 
     /// <summary>
@@ -1006,13 +1022,19 @@ internal static class QrCodeBuilder2
     /// <summary>
     /// Наилучшая матрица из 8 масок
     /// </summary>
-    private static List<byte[]> GetBestMatrix(this QrCodeData data)
-        => Enumerable
+    private static List<byte[]> GetBestMatrix(this QrCodeData data, ref Mask? maskNum)
+    {
+        var res = Enumerable
             .Range(0, 8)
-            .Select(maskNumber => (0, data.CreateMatrix(maskNumber))
+            .Select(maskNumber => (maskNumber, (0, data.CreateMatrix((Mask)maskNumber))
                 .ScoreByRule1()
-                .ScoreByRule4())
-            .MinBy(x=>x.score).matrix;
+                .ScoreByRule4()))
+            .MinBy(x=>x.Item2.score);
+
+        maskNum = (Mask)res.Item1;
+        
+        return res.Item2.matrix;
+    }
 
     #endregion
 }

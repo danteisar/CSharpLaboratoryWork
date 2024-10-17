@@ -3,7 +3,7 @@ namespace QrCodeGenerator;
 /// <summary>
 /// Error Correction Level
 /// </summary>
-public enum CorrectionLevel : byte
+public enum EccLevel : byte
 {
     /// <summary>
     /// 7 % Low 00

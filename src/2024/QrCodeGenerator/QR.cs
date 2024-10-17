@@ -8,8 +8,35 @@ public enum QR : byte
     V4 = 4,
     V5 = 5,
     V6 = 6,
+    /// <summary>
+    /// <para>
+    /// ▀▀▀█▀▀█
+    /// </para>
+    /// <para>
+    /// █▀▀▄▀__█
+    /// </para>
+    /// <para>
+    /// ▀▀▀▀▀▀▀
+    /// </para>
+    /// </summary>
     V7 = 7,
+    /// <summary>
+    /// <para>
+    /// __▄_____▄
+    /// </para>
+    /// <para>
+    ///  ▄██▀ 
+    /// </para>
+    /// </summary>
     V8 = 8,
+    /// <summary>
+    /// <para>
+    /// ▄▄ ▄▄▄
+    /// </para>
+    /// <para>
+    ///  ▀▀▄
+    /// </para>
+    /// </summary>
     V9 = 9,
     V10 = 10,
     V11 = 11,
@@ -21,4 +48,5 @@ public enum QR : byte
     V17 = 17,
     V18 = 18,
     V19 = 19,
+    V20 = 20,
 }

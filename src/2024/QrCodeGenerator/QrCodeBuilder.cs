@@ -36,22 +36,22 @@ public static class QrCodeBuilder
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     ];
 
-    private static readonly Dictionary<(CorrectionLevel correctionLevel, int maskNum), string> _masksAndCorrectionLevel = new()
+    private static readonly Dictionary<(EccLevel correctionLevel, int maskNum), string> _masksAndCorrectionLevel = new()
     {
-        {(CorrectionLevel.L, 0), "111011111000100"},
-        {(CorrectionLevel.M, 0), "101010000010010"},
-        {(CorrectionLevel.Q, 0), "011010101011111"},
-        {(CorrectionLevel.H, 0), "001011010001001"},
+        {(EccLevel.L, 0), "111011111000100"},
+        {(EccLevel.M, 0), "101010000010010"},
+        {(EccLevel.Q, 0), "011010101011111"},
+        {(EccLevel.H, 0), "001011010001001"},
 
-        {(CorrectionLevel.L, 1), "111001011110011"},
-        {(CorrectionLevel.M, 1), "101000100100101"},
-        {(CorrectionLevel.Q, 1), "011000001101000"},
-        {(CorrectionLevel.H, 1), "001001110111110"},
+        {(EccLevel.L, 1), "111001011110011"},
+        {(EccLevel.M, 1), "101000100100101"},
+        {(EccLevel.Q, 1), "011000001101000"},
+        {(EccLevel.H, 1), "001001110111110"},
 
-        {(CorrectionLevel.L, 2), "111110110101010"},
-        {(CorrectionLevel.M, 2), "101111001111100"},
-        {(CorrectionLevel.Q, 2), "011111100110001"},
-        {(CorrectionLevel.H, 2), "001110011100111"},
+        {(EccLevel.L, 2), "111110110101010"},
+        {(EccLevel.M, 2), "101111001111100"},
+        {(EccLevel.Q, 2), "011111100110001"},
+        {(EccLevel.H, 2), "001110011100111"},
     };
 
     private const int A = 10, B = 11, C = 12, D = 13, E = 14, F = 15;
@@ -227,7 +227,7 @@ public static class QrCodeBuilder
         }
     }
 
-    private static void AddMaskNumAndCorrectionLevel(List<int[]> matrix, CorrectionLevel level, int maskNum)
+    private static void AddMaskNumAndCorrectionLevel(List<int[]> matrix, EccLevel level, int maskNum)
     {
         var maskNumAndCorrectionLevel = _masksAndCorrectionLevel[(level, maskNum)];
         for (int i = 0; i< maskNumAndCorrectionLevel.Length; i++)
@@ -383,30 +383,30 @@ public static class QrCodeBuilder
         return res;
     }
 
-    private static readonly Dictionary<(CorrectionLevel correctionLevel1, byte version), int> _maxData = new()
+    private static readonly Dictionary<(EccLevel correctionLevel1, byte version), int> _maxData = new()
     {
-        {(CorrectionLevel.H, 1), 072},  
-        {(CorrectionLevel.Q, 1), 104}, 
-        {(CorrectionLevel.M, 1), 128},
-        {(CorrectionLevel.L, 1), 152},
+        {(EccLevel.H, 1), 072},  
+        {(EccLevel.Q, 1), 104}, 
+        {(EccLevel.M, 1), 128},
+        {(EccLevel.L, 1), 152},
         
-        {(CorrectionLevel.H, 2), 128},  
-        {(CorrectionLevel.Q, 2), 176}, 
-        {(CorrectionLevel.M, 2), 224},
-        {(CorrectionLevel.L, 2), 272},
+        {(EccLevel.H, 2), 128},  
+        {(EccLevel.Q, 2), 176}, 
+        {(EccLevel.M, 2), 224},
+        {(EccLevel.L, 2), 272},
        
-        {(CorrectionLevel.H, 3), 208},
-        {(CorrectionLevel.Q, 3), 272},
-        {(CorrectionLevel.M, 3), 352},
-        {(CorrectionLevel.L, 3), 440},        
+        {(EccLevel.H, 3), 208},
+        {(EccLevel.Q, 3), 272},
+        {(EccLevel.M, 3), 352},
+        {(EccLevel.L, 3), 440},        
 
-        {(CorrectionLevel.H, 4), 288},
-        {(CorrectionLevel.Q, 4), 384},
-        {(CorrectionLevel.M, 4), 512},
-        {(CorrectionLevel.L, 4), 640}        
+        {(EccLevel.H, 4), 288},
+        {(EccLevel.Q, 4), 384},
+        {(EccLevel.M, 4), 512},
+        {(EccLevel.L, 4), 640}        
     };
 
-    private static CorrectionLevel GetCorrectionLevelAndVersion(string codeText, int version)
+    private static EccLevel GetCorrectionLevelAndVersion(string codeText, int version)
     {
         foreach (var pair in _maxData.Where(v => v.Key.version == version))
         {
@@ -416,18 +416,18 @@ public static class QrCodeBuilder
         throw new NotSupportedException("Current version of QR-code does not support that data length!");
     }
 
-    private static readonly Dictionary<EncodedType, byte> _codeTypeSize = new()
+    private static readonly Dictionary<EncodingMode, byte> _codeTypeSize = new()
     {
-        {EncodedType.Numeric, 10},
-        {EncodedType.AlphaNumeric, 9},
-        {EncodedType.Binary, 8}
+        {EncodingMode.Numeric, 10},
+        {EncodingMode.AlphaNumeric, 9},
+        {EncodingMode.Binary, 8}
     };
 
-    private static readonly Dictionary<EncodedType, string> _codeTypeMode = new()
+    private static readonly Dictionary<EncodingMode, string> _codeTypeMode = new()
     {
-        {EncodedType.Numeric, "0001"},
-        {EncodedType.AlphaNumeric, "0010"},
-        {EncodedType.Binary, "0100"}
+        {EncodingMode.Numeric, "0001"},
+        {EncodingMode.AlphaNumeric, "0010"},
+        {EncodingMode.Binary, "0100"}
     };
 
     private static readonly Dictionary<byte, byte> _matrixSizeByVersion = new()
@@ -438,13 +438,13 @@ public static class QrCodeBuilder
         {4, 33 + 4}
     };
 
-    private static string GetDataAmount(EncodedType codeType, int size)
+    private static string GetDataAmount(EncodingMode codeType, int size)
     {
         var str = Convert.ToString(size, 2);
         return str.PadLeft(_codeTypeSize[codeType], '0');
     }
     
-    private static string GetServiceInformation(EncodedType codeType, string text)
+    private static string GetServiceInformation(EncodingMode codeType, string text)
     {
         return _codeTypeMode[codeType] + GetDataAmount(codeType, text.Length);       
     }
@@ -486,20 +486,20 @@ public static class QrCodeBuilder
         return tmp;
     }
 
-    private static readonly Dictionary<CorrectionLevel, byte[]> _correctionLevelBytesSize = new()
+    private static readonly Dictionary<EccLevel, byte[]> _correctionLevelBytesSize = new()
     {
-        {CorrectionLevel.L, [00,07,10,15,20]},
-        {CorrectionLevel.M, [00,10,16,26,18]},
-        {CorrectionLevel.Q, [00,13,22,18,26]},
-        {CorrectionLevel.H, [00,17,28,22,16]},
+        {EccLevel.L, [00,07,10,15,20]},
+        {EccLevel.M, [00,10,16,26,18]},
+        {EccLevel.Q, [00,13,22,18,26]},
+        {EccLevel.H, [00,17,28,22,16]},
     };
 
-    private static readonly Dictionary<CorrectionLevel, byte[]> _correctionLevelBlocksCount = new()
+    private static readonly Dictionary<EccLevel, byte[]> _correctionLevelBlocksCount = new()
     {
-        {CorrectionLevel.L, [1,1,1,1]},
-        {CorrectionLevel.M, [1,1,1,2]},
-        {CorrectionLevel.Q, [1,1,2,2]},
-        {CorrectionLevel.H, [1,1,2,4]},
+        {EccLevel.L, [1,1,1,1]},
+        {EccLevel.M, [1,1,1,2]},
+        {EccLevel.Q, [1,1,2,2]},
+        {EccLevel.H, [1,1,2,4]},
     };
 
     private static readonly Dictionary<byte, byte[]> _correctionLevelGeneratingPolynomial = new()
@@ -597,7 +597,7 @@ public static class QrCodeBuilder
         return sb.ToString();
     }
         
-    public static string GetQrCode(string text, byte qrCodeVersion = 1, EncodedType codeType = EncodedType.Binary)
+    public static string GetQrCode(string text, byte qrCodeVersion = 1, EncodingMode codeType = EncodingMode.Binary)
     {
         // Создание матрицы QR кода           
         var qrCodeMatrix = CreateQrCodeMatrix(_matrixSizeByVersion[qrCodeVersion]);
@@ -605,8 +605,8 @@ public static class QrCodeBuilder
         var sb = new StringBuilder();        
         sb.Append(GetServiceInformation(codeType, text));        
         var tmp = codeType switch {
-            EncodedType.AlphaNumeric => CodeLetterDigital(text.ToUpper()),
-            EncodedType.Numeric => CodeDigital(text),
+            EncodingMode.AlphaNumeric => CodeLetterDigital(text.ToUpper()),
+            EncodingMode.Numeric => CodeDigital(text),
             _ => CodeBytes(text)
         };
         foreach (var str in tmp)

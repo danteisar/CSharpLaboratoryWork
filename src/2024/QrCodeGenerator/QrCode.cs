@@ -11,13 +11,16 @@
 //  █ ███ █ ▀  █▄ ▀▄▄█▄▄█
 //  █ ▀▀▀ █  █▄▀ ▄█ █▀   
 //  ▀▀▀▀▀▀▀ ▀ ▀ ▀▀▀▀ ▀  ▀
-public class QrCode(string text, EncodedType codeType = EncodedType.Binary, QR qrCodeVersion = QR.V1, CorrectionLevel? correctionLevel = null, int? maskNum = null, bool invert = false)
+public class QrCode(string text, EncodingMode encodingMode = EncodingMode.Binary, QR qrCodeVersion = QR.V1, EccLevel? correctionLevel = null, Mask? maskNum = null, bool invert = false)
 {
    
     public string Text { get; } = text;
-    public EncodedType CodeType => codeType;
+    public EncodingMode EncodingMode => encodingMode;
     public QR Version => qrCodeVersion;
-    public CorrectionLevel CorrectionLevel => correctionLevel ?? CorrectionLevel.L;
-    public string Code { get; } = QrCodeBuilder2.GetQrCode(text, ref qrCodeVersion, codeType, ref correctionLevel, maskNum, invert);
+    public EccLevel CorrectionLevel => correctionLevel ?? EccLevel.L;
+    public Mask Mask => maskNum ?? Mask.M2;
+    public string Code { get; } = QrCodeBuilder2.GetQrCode(text, ref qrCodeVersion, encodingMode, ref correctionLevel, ref maskNum, invert);
     public override string ToString() => Code;
+
+    public static bool IsDEmo {get => QrCodeBuilder2.IsDemo; set=> QrCodeBuilder2.IsDemo = value;}
 }
