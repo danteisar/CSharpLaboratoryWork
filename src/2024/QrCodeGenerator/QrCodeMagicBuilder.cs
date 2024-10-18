@@ -2,48 +2,67 @@ using System.Text;
 
 namespace QrCodeGenerator;
 
-internal static class QrCodeBuilder2
-{
-    public static bool IsDemo {get; set; }
+/*
+// Этап 1. Полный блок с данными + подходящий уровень коррекции ошибок + нужная версия QR-кода 
+(var encodedData, needCorrectionLevel, qrCodeVersion) = Magic(text, Magic(text, codeType), codeType, qrCodeVersion, needCorrectionLevel); 
 
+// Этап 2. Блоки с данными + байты коррекции
+var length = _maxData[(needCorrectionLevel.Value, qrCodeVersion)];
+var codeText = Magic(encodedData, length);
+var blockCount = _correctionLevelBlocksCount[needCorrectionLevel.Value][(byte)qrCodeVersion];      
+var blocks = Magic(codeText, blockCount, 0);
+var correctionBlocks = new List<byte[]>();        
+foreach (var block in blocks)
+{
+    var size = _countOfErrorCorrectionCodeWords[needCorrectionLevel.Value][(byte)qrCodeVersion];
+    correctionBlocks.Add(Magic(block, size));
+}
+var data = Magic(blocks, correctionBlocks); 
+        
+// Этап 3. Создание матрицы QR кода c лучшей маской 
+var qrCodeData = new QrCodeData
+{ 
+    Version = qrCodeVersion,
+    CorrectionLevel = needCorrectionLevel.Value,
+    Data = data,
+};
+
+var qrCodeMatrix = maskNum.HasValue
+    ? qrCodeData.Magic(maskNum.Value)
+    : qrCodeData.Magic(ref maskNum);
+
+// Этап 4.
+return Magic(qrCodeMatrix, invert);
+*/
+internal static class QrCodeMagicBuilder
+{
     #region GET
 
+    /// <summary>
+    ///  ToDo Необходимо восстановить функцию, она почему то сейчас возвращает не QR-код, а исходный текст
+    /// </summary>
     public static string GetQrCode(string text, ref QR qrCodeVersion, EncodingMode codeType, ref EccLevel? needCorrectionLevel, ref Mask? maskNum, bool invert = false)
     {    
-        // Полный блок с данными + подходящий уровень коррекции ошибок + нужная версия QR-кода 
-        (var encodedData, needCorrectionLevel, qrCodeVersion) = GetEncodingData(text, EncodeData(text, codeType), codeType, qrCodeVersion, needCorrectionLevel); 
+        // Этап 1. Полный блок с данными + подходящий уровень коррекции ошибок + нужная версия QR-кода 
+        // Вроде как тут нужно вызвать две функции
+        
 
-        // Блоки с данными + байты коррекции
-        var length = _maxData[(needCorrectionLevel.Value, qrCodeVersion)];
-        var codeText = FillCodeByCurrentSize(encodedData, length);
-        var blockCount = _correctionLevelBlocksCount[needCorrectionLevel.Value][(byte)qrCodeVersion];      
-        var blocks = SplitByBlock(codeText, blockCount);
-        var correctionBlocks = new List<byte[]>();        
-        foreach (var block in blocks)
-        {
-            var size = _countOfErrorCorrectionCodeWords[needCorrectionLevel.Value][(byte)qrCodeVersion];
-            correctionBlocks.Add(GetCorrectionBlock(block, size));
-        }
-        var data = CombineDataAndCorrectionBlocks(blocks, correctionBlocks); 
+        // Этап 2. Блоки с данными + байты коррекции
+        // А тут аж все 4
+       
                
-        // Создание матрицы QR кода c лучшей маской      
-        var qrCodeData = new QrCodeData
-        { 
-            Version = qrCodeVersion,
-            CorrectionLevel = needCorrectionLevel.Value,
-            Data = data,
-        };
+        // Этап 3. Создание матрицы QR кода c лучшей маской 
+        // Тут всего 1 функция, но нужно добавить выбор, какую именно вызывать
+                
 
-        var qrCodeMatrix = maskNum.HasValue
-            ? qrCodeData.CreateMatrix(maskNum.Value)
-            : qrCodeData.GetBestMatrix(ref maskNum);
-
-        return BuildString(qrCodeMatrix, invert);
+        // Этап 4.
+        // Достаточно вызова одной функции, чтобы вернуть строку
+        return text;
     }
 
     #endregion
 
-    #region Base Matrix
+    #region Magic
 
     /// <summary>
     /// Граница в два модуля вокруг QR-кода
@@ -71,23 +90,23 @@ internal static class QrCodeBuilder2
     private const byte NA = 0;
 
     /// <summary>
-    /// Сборка матрицы в готовую строку QR кода
+    /// Magic
     /// </summary>
-    private static string BuildString(this List<byte[]> matrix, bool invert)
+    private static string Magic(this List<byte[]> a, bool b)
     {
         var sb = new StringBuilder();
-        var length = matrix.Count % 2 == 1 ? matrix.Count + 1 : matrix.Count;
+        var length = a.Count % 2 == 1 ? a.Count + 1 : a.Count;
 
         for (int row = 0; row < length; row+=2)
         {
-            for(int column = 0; column < matrix[0].Length; column++)
+            for(int column = 0; column < a[0].Length; column++)
             {
-                byte scanModule1 = matrix[row][column];
-                byte scanModule2 = row < matrix.Count - 1 ? matrix[row+1][column] : ACTIVE;
+                byte scanModule1 = a[row][column];
+                byte scanModule2 = row < a.Count - 1 ? a[row+1][column] : ACTIVE;
 
-                var c = invert 
-                    ? ScanInvert(scanModule1, scanModule2)
-                    : Scan(scanModule1, scanModule2);
+                var c = b 
+                    ? Magic((scanModule1, scanModule2))
+                    : Magic([scanModule1, scanModule2]);
 
                 sb.Append(c);  
             }
@@ -97,10 +116,10 @@ internal static class QrCodeBuilder2
     }
     
     /// <summary>
-    /// преобразования данных с модуля в символ QR кода
+    /// Magic
     /// </summary>
-    private static char Scan(byte a, byte b)
-        => (a, b) switch
+    private static char Magic(byte[] a)
+        => (a[0], a[1]) switch
         {
             (0, 0) => ' ',
             (0, 1) => '▄',
@@ -109,8 +128,11 @@ internal static class QrCodeBuilder2
             _ => throw new NotImplementedException(),
         };
     
-    private static char ScanInvert(byte a, byte b)
-        => (a, b) switch
+    /// <summary>
+    /// Magic
+    /// </summary>
+    private static char Magic((byte a, byte b)c)
+        => (c.a, c.b) switch
         {
             (1, 1) => ' ',
             (1, 0) => '▄',
@@ -122,98 +144,98 @@ internal static class QrCodeBuilder2
     /// <summary>
     /// Создание болванки матрицы, заполненный <see cref="ACTIVE"/>
     /// </summary>
-    private static List<byte[]> CreateQrCodeMatrix(int size, byte value = ACTIVE)
+    private static List<byte[]> Magic(int a, byte b = ACTIVE)
     {
         List<byte[]> qrCodeMatrix = [];       
-        for (int i = 0; i < size; i++)
+        for (int i = 0; i < a; i++)
         {
-            qrCodeMatrix.Add(new byte[size]);
+            qrCodeMatrix.Add(new byte[a]);
         }
-        return qrCodeMatrix.FillMatrix(value);
+        return qrCodeMatrix.Magic(b);
     }
 
     /// <summary>
     /// Размер матрицы в зависимости от версии QR-кода
     /// </summary>
-    private static int GetMatrixSizeForVersion(QR version)
+    private static int Magic(byte a, int b)
     {
-        return 17 + 4 * (int)version + BORDER * 2;
+        return 17 + 4 * a + b * 2;
     }
 
     #endregion
 
-    #region Matrix Templates
+    #region Magic
     
-    private static List<byte[]> AddPosition(this List<byte[]> matrix, int x, int y)
+    private static List<byte[]> Magic0(this List<byte[]> a, int b, int c)
     {
-        FillCube(matrix, x - 4, y - 4, 9, 1);
-        FillCube(matrix, x - 3, y - 3, 7, 0);
-        FillCube(matrix, x - 2, y - 2, 5, 1);
-        FillCube(matrix, x - 1, y - 1, 3, 0);
-        return matrix;
+        Magic(a, b - 4, c - 4, 9, 1);
+        Magic(a, b - 3, c - 3, 7, 0);
+        Magic(a, b - 2, c - 2, 5, 1);
+        Magic(a, b - 1, c - 1, 3, 0);
+        return a;
     }
 
-    public static List<byte[]> InvertMatrix(this List<byte[]> matrix)
+    public static List<byte[]> InvertMatrix(this List<byte[]> a)
     {
-        for (int i = 0; i < matrix.Count; i++)
+        for (int i = 0; i < a.Count; i++)
         {
-            for (int j = 0; j < matrix.Count; j++)
+            for (int j = 0; j < a.Count; j++)
             {
-                matrix[i][j] = (byte)(ACTIVE - matrix[i][j]);
+                a[i][j] = (byte)(ACTIVE - a[i][j]);
             }
         }  
-        return matrix;      
+        return a;      
     }
 
-    private static List<byte[]> FillMatrix(this List<byte[]> matrix, byte value)
+    private static List<byte[]> Magic(this List<byte[]> a, byte b)
     {
-        for (int i = 0; i < matrix.Count; i++)
+        for (int i = 0; i < a.Count; i++)
         {
-            for (int j = 0; j < matrix.Count; j++)
+            for (int j = 0; j < a.Count; j++)
             {
-                matrix[i][j] = value;
+                a[i][j] = b;
             }
         }  
-        return matrix;      
+        return a;      
     }
 
-    private static List<byte[]> AddAlignment(this List<byte[]> matrix, int x, int y)
+    private static List<byte[]> Magic(this List<byte[]> a, int b, int y)
     {
-        FillCube(matrix, x - 2, y - 2, 5, 0);
-        FillCube(matrix, x - 1, y - 1, 3, 1);
-        matrix[x][y] = 0;
-        return matrix;
+        Magic(a, b - 2, y - 2, 5, 0);
+        Magic(a, b - 1, y - 1, 3, 1);
+        a[b][y] = 0;
+        return a;
     }
 
-    private static List<byte[]> AddTiming(this List<byte[]> matrix, bool isMask = false)
+    private static List<byte[]> Magic0(this List<byte[]> a, bool b = false)
     {
-        for (int i = BORDER; i < matrix.Count - BORDER - 6; i++)
+        for (int i = BORDER; i < a.Count - BORDER - 6; i++)
         {
-            matrix[i][BORDER + 6] = !isMask ? (byte)(i % 2) : ZERO;
+            a[i][BORDER + 6] = !b ? (byte)(i % 2) : ZERO;
         }
-        for (int i = BORDER; i < matrix[0].Length - BORDER - 6; i++)
+        for (int i = BORDER; i < a[0].Length - BORDER - 6; i++)
         {
-            matrix[BORDER + 6][i] = !isMask ? (byte)(i % 2) : ZERO;
+            a[BORDER + 6][i] = !b ? (byte)(i % 2) : ZERO;
         }
-        return matrix;
+        return a;
     }
 
-    private static List<byte[]> FillCube(this List<byte[]> matrix, int x, int y, int size, byte value)
+    private static List<byte[]> Magic(this List<byte[]> a, int b, int c, int d, byte e)
     {
-        for(int i = 0; i < size; i++)
+        for(int i = 0; i < d; i++)
         {
-            for(int j = 0; j < size; j++)
+            for(int j = 0; j < d; j++)
             {
-                matrix[i + x][j + y] = value;
+                a[i + b][j + c] = e;
             }
         }
-        return matrix;
+        return a;
     }
 
-    private static List<byte[]> Fill(this List<byte[]> matrix, int x, int y, byte value)
+    private static List<byte[]> Magic(this List<byte[]> a, int b, int c, byte d)
     {
-        matrix[x][y] = value;
-        return matrix;
+        a[b][c] = d;
+        return a;
     }
 
     private static readonly Dictionary<QR, int[]> _alignmentsPosition = new()
@@ -286,112 +308,115 @@ internal static class QrCodeBuilder2
         {QR.V20, "000000101001111110"},
     };
 
-    private static List<byte[]> FillVersion(this List<byte[]> matrix, QR qrCodeVersion, bool isMask = false)
+    /// <summary>
+    /// Magic
+    /// </summary>
+    private static List<byte[]> Magic(this List<byte[]> a, QR b, bool c = false)
     {
-        if ((byte)qrCodeVersion < 7) return matrix;
+        if ((byte)b < 7) return a;
 
         int pos = 0;
-        var version =  _versionCodes[qrCodeVersion];        
+        var version =  _versionCodes[b];        
         int offsetColumn = BORDER;
-        int offsetRow = matrix.Count - BORDER - POSITION_DETECTION - 3;
+        int offsetRow = a.Count - BORDER - POSITION_DETECTION - 3;
 
         for (int row = 0; row < 3; row++)
         {
             for (int column = 0; column < 6; column++)
             {
-                byte value = isMask || version[pos++] == '1' ? ZERO : ACTIVE;                
-                matrix[offsetColumn + column][offsetRow + row] = value;
-                matrix[offsetRow + row][offsetColumn + column] = value;
+                byte value = c || version[pos++] == '1' ? ZERO : ACTIVE;                
+                a[offsetColumn + column][offsetRow + row] = value;
+                a[offsetRow + row][offsetColumn + column] = value;
             }
         }
-        return matrix;
+        return a;
     }
 
     /// <summary>
-    /// Готовая матрица QR-кода
+    /// TODO собрать матрицу
     /// </summary>
-    private static List<byte[]> CreateMatrix(this QrCodeData data, Mask maskNum)
+    private static List<byte[]> Magic(this QrCodeData a, Mask b)
     {
-        var size = GetMatrixSizeForVersion(data.Version);
-        var tmp = CreateQrCodeMatrix(size)                    
-            .PutDataInMatrix(data.Data, data.Version)            
-            .MaskInvertMatrix(GetMatrixMask(maskNum))  
-            .AddFormatInformation(data.CorrectionLevel, data.Version, maskNum)
+        var size = Magic((byte)a.Version, BORDER);
+        var tmp = Magic(size)                    
+            .Magic(a.Data, a.Version)            
+            .Magic1(Magic1(b))  
+            .Magic(a.Version, b, a.CorrectionLevel)
             ;
 
         int posX1 = BORDER + 3;
         int posX2 = tmp.Count - BORDER - 4;
         int posY = BORDER + 3;
 
-        tmp.AddTiming()
-           .AddPosition(posX1, posY)
-           .AddPosition(posX1, tmp[0].Length - BORDER - 4)            
-           .AddPosition(posX2, posY);
+        tmp.Magic0()
+           .Magic0(posX1, posY)
+           .Magic0(posX1, tmp[0].Length - BORDER - 4)            
+           .Magic0(posX2, posY);
 
-        foreach (var x in _alignmentsPosition[data.Version])
-            foreach (var y in _alignmentsPosition[data.Version].Where(y => CanFill(x + BORDER, y + BORDER, tmp)))               
-                tmp.AddAlignment(x + BORDER, y + BORDER);  
+        foreach (var x in _alignmentsPosition[a.Version])
+            foreach (var y in _alignmentsPosition[a.Version].Where(y => CanMagic(x + BORDER, y + BORDER, tmp)))               
+                tmp.Magic(x + BORDER, y + BORDER);  
 
-        tmp.Fill(posX2 - 4, posY + 5, 0)
-           .FillVersion(data.Version);    
+        tmp.Magic(posX2 - 4, posY + 5, 0)
+           .Magic(a.Version);    
 
         return tmp;
     }
     
     /// <summary>
-    /// Ограничивающая матрица для размещения данных
+    /// Magic
     /// </summary>
-    private static List<byte[]> CreateOrderMatrix(QR version)
+    private static List<byte[]> Magic(QR a)
     {  
-        int matrixSize = GetMatrixSizeForVersion(version);
+        int matrixSize = Magic((byte)a, BORDER);
         var size = matrixSize - BORDER * 2;
 
-        var tmp = CreateQrCodeMatrix(matrixSize, ZERO)
-            .FillCube(BORDER, BORDER, size, ACTIVE);
+        var tmp = Magic(matrixSize, ZERO)
+            .Magic(BORDER, BORDER, size, ACTIVE);
 
         int cubeSize = 9;
         int posX1 = BORDER;
         int posY1 = BORDER;
-        int posX2 = BORDER + cubeSize + (int)version * 4;           
-        int posY2 = BORDER + cubeSize + (int)version * 4;     
+        int posX2 = BORDER + cubeSize + (int)a * 4;           
+        int posY2 = BORDER + cubeSize + (int)a * 4;     
 
-        tmp.FillCube(posX1, posY1, cubeSize, ZERO)
-           .FillCube(posX1, posY2, cubeSize, ZERO)            
-           .FillCube(posX2, posY1, cubeSize, ZERO);
+        tmp.Magic(posX1, posY1, cubeSize, ZERO)
+           .Magic(posX1, posY2, cubeSize, ZERO)            
+           .Magic(posX2, posY1, cubeSize, ZERO);
 
-        foreach (var x in _alignmentsPosition[version])
-            foreach (var y in _alignmentsPosition[version].Where(y => CanFill(x + BORDER, y + BORDER, tmp)))
-                tmp.FillCube(x + BORDER - 2, y + BORDER - 2, 5, 0);
+        foreach (var x in _alignmentsPosition[a])
+            foreach (var y in _alignmentsPosition[a].Where(y => CanMagic(x + BORDER, y + BORDER, tmp)))
+                tmp.Magic(x + BORDER - 2, y + BORDER - 2, 5, 0);
 
-        tmp.AddTiming(true)
-           .FillVersion(version, true);                 
+        tmp.Magic0(true)
+           .Magic(a, true);                 
 
         return tmp;
     }
 
     #endregion
 
-    #region Place Data in Matrix
+    #region Magic
 
     /// <summary>
-    /// Нельзя размещать в POSITION_DETECTION
+    /// Magic
     /// </summary>
-    private static bool CanFill(int x, int y, List<byte[]> matrix)
+    private static bool CanMagic(int x, int y, List<byte[]> matrix)
         => !(x < POSITION_DETECTION + BORDER + 1 && y < POSITION_DETECTION + BORDER + 1 ||
                 x < POSITION_DETECTION + BORDER + 1 && y > matrix.Count - POSITION_DETECTION - BORDER ||
                 x > matrix.Count - POSITION_DETECTION - BORDER && y < POSITION_DETECTION + BORDER + 1);  
 
     /// <summary>
-    /// Размещение данных на матрице
+    /// Magic
     /// </summary>
-    private static List<byte[]> PutDataInMatrix(this List<byte[]> matrix, string text, QR version)
+    private static List<byte[]> Magic(this List<byte[]> a, string b, QR c)
     {        
-        var blockedModules = CreateOrderMatrix(version); 
+        var blockedModules = Magic(c); 
 
-        var size = matrix.Count - BORDER * 2;
+        var size = a.Count - BORDER * 2;
         var up = true; 
         var index = 0; 
-        var count = text.Length; 
+        var count = b.Length; 
         
         for (var column = size + BORDER - 1; column >= BORDER; column -= 2)
         {
@@ -401,58 +426,46 @@ internal static class QrCodeBuilder2
             {    
                 var row = up ? size + BORDER - i - 1 : i + BORDER;
 
-                if (index < count && !blockedModules.IsBlocked(row, column))
-                    PlaceData(matrix, blockedModules, row, column, text[index++]);                       
+                if (index < count && !blockedModules.IsMagic(row, column))
+                    Magic(a, blockedModules, row, column, b[index++]);                       
                     
-                if (index < count && column > 0 && !blockedModules.IsBlocked(row, column - 1))
-                    PlaceData(matrix, blockedModules, row, column - 1, text[index++]);
-
-                if (IsDemo)
-                {
-                    Console.SetCursorPosition(0,0);
-                    Console.Write(blockedModules.BuildString(false));
-                    Thread.Sleep(1);
-                }  
+                if (index < count && column > 0 && !blockedModules.IsMagic(row, column - 1))
+                    Magic(a, blockedModules, row, column - 1, b[index++]); 
             }
             up = !up;
         }
 
-        if (IsDemo) 
-        {
-            Console.ReadKey(true);
-            IsDemo = false;
-        }
 
-        return matrix;
+        return a;
     }
 
     /// <summary>
-    /// Запрещенное место для записи данных
+    /// Magic
     /// </summary>
-    private static bool IsBlocked(this List<byte[]> blockedModules, int row, int column)
+    private static bool IsMagic(this List<byte[]> a, int b, int c)
     {
-        return blockedModules[row][column] == ZERO;
+        return a[b][c] == ZERO;
     }
 
     /// <summary>
-    /// Размещение бита информации
+    /// Magic
     /// </summary>
-    private static void PlaceData(List<byte[]> matrix, List<byte[]> blockedModules, int row, int column, char letter)
+    private static void Magic(List<byte[]> a, List<byte[]> b, int c, int d, char e)
     {
-        blockedModules[row][column] = ZERO;
-        matrix[row][column] = letter != '1' ? ACTIVE : ZERO;
+        b[c][d] = ZERO;
+        a[c][d] = e != '1' ? ACTIVE : ZERO;
     }
 
     #endregion
 
-    #region Encode Data
+    #region Magic
 
-    private static string EncodeData(string text, EncodingMode codeType){
+    private static string Magic(string a, EncodingMode b){
         var sb = new StringBuilder();
-        var tmp = codeType switch {
-            EncodingMode.AlphaNumeric => EncodeAlphaNumeric(text.ToUpper()),
-            EncodingMode.Numeric => EncodeNumeric(text),
-            _ => EncodeBinary(text)
+        var tmp = b switch {
+            EncodingMode.AlphaNumeric => Magic2(a.ToUpper()),
+            EncodingMode.Numeric => Magic3(a),
+            _ => Magic4(a)
         };
         foreach (var str in tmp)
             sb.Append(str);
@@ -468,59 +481,59 @@ internal static class QrCodeBuilder2
                                                     '+','-','.','/',':'
                                                 };
 
-    private static void AddTo(List<string> list, int num, byte lengthType = 8)
+    private static void Magic(List<string> a, int b, byte c = 8)
     {
-        var str = Convert.ToString(num, 2);
-        list.Add(str.PadLeft(lengthType, '0'));
+        var str = Convert.ToString(b, 2);
+        a.Add(str.PadLeft(c, '0'));
     }
 
-    private static List<string> EncodeAlphaNumeric(string text)
+    private static List<string> Magic2(string a)
     {
         var res = new List<string>();
         var pos = 0;
-        while (pos < text.Length - 2)
+        while (pos < a.Length - 2)
         {
-            var index1 = Array.IndexOf(letterNumberArray, text[pos]);
-            var index2 = Array.IndexOf(letterNumberArray, text[pos + 1]);
-            AddTo(res, index1 * 45 + index2, 11);
+            var index1 = Array.IndexOf(letterNumberArray, a[pos]);
+            var index2 = Array.IndexOf(letterNumberArray, a[pos + 1]);
+            Magic(res, index1 * 45 + index2, 11);
             pos += 2;
         }
-        if (text.Length % 2 == 1)
+        if (a.Length % 2 == 1)
         {
-            AddTo(res, Array.IndexOf(letterNumberArray, text[^1]), 6);
+            Magic(res, Array.IndexOf(letterNumberArray, a[^1]), 6);
         }
         return res;
     }
 
-    private static List<string> EncodeNumeric(string text)
+    private static List<string> Magic3(string a)
     {
         var res = new List<string>();
         var pos = 0;
-        var length = text.Length;
-        while (pos < text.Length - 3)
+        var length = a.Length;
+        while (pos < a.Length - 3)
         {
-            var number = text.Substring(pos, 3);
-            AddTo(res, Convert.ToInt32(number));
+            var number = a.Substring(pos, 3);
+            Magic(res, Convert.ToInt32(number));
             pos += 3;
         }
-        if (text.Length % 3 == 2)
+        if (a.Length % 3 == 2)
         {
-            AddTo(res, Convert.ToInt32(text.Substring(length - 3, 2)), 7);
+            Magic(res, Convert.ToInt32(a.Substring(length - 3, 2)), 7);
         }
-        else if (text.Length % 3 == 1)
+        else if (a.Length % 3 == 1)
         {
-            AddTo(res, Convert.ToInt32(text.Substring(length - 2, 1)), 4);
+            Magic(res, Convert.ToInt32(a.Substring(length - 2, 1)), 4);
         }
         return res;
     }
 
-    private static List<string> EncodeBinary(string text)
+    private static List<string> Magic4(string a)
     {
         var res = new List<string>();        
-        var numbers = Encoding.UTF8.GetBytes(text);
+        var numbers = Encoding.UTF8.GetBytes(a);
         foreach (var number in numbers)
         {
-            AddTo(res, Convert.ToInt32(number));
+            Magic(res, Convert.ToInt32(number));
         }        
         return res;
     }
@@ -532,9 +545,9 @@ internal static class QrCodeBuilder2
         {EncodingMode.Binary,       "0100"}
     };
 
-    private static byte GetDataLengthBlockSize(EncodingMode mode, QR version)
+    private static byte Magic(EncodingMode a, QR b)
     {
-        return ((int)version, mode) switch
+        return ((int)b, a) switch
         {
             (< 10, EncodingMode.Numeric) => 10,
             (< 10, EncodingMode.AlphaNumeric) => 9,
@@ -550,43 +563,43 @@ internal static class QrCodeBuilder2
         };
     }
 
-    private static string GetDataLength(EncodingMode codeType, QR version, string text)
+    private static string Magic(EncodingMode a, QR b, string c)
     {
-        var length = codeType switch
+        var length = a switch
         {
-            EncodingMode.Binary => Encoding.UTF8.GetBytes(text).Length,
-            _ => text.Length,
+            EncodingMode.Binary => Encoding.UTF8.GetBytes(c).Length,
+            _ => c.Length,
         };
-        var size = GetDataLengthBlockSize(codeType, version);
+        var size = Magic(a, b);
         var str = Convert.ToString(length, 2).PadLeft(size, '0');
         return str;
     }
     
-    private static StringBuilder AppendServiceInformation(this StringBuilder sb, EncodingMode codeType, QR version, string text)
+    private static StringBuilder Magic(this StringBuilder a, EncodingMode b, QR c, string d)
     {
-        return sb.Append(GetServiceInformation(codeType, version, text));
+        return a.Append(Magic1(b, c, d));
     }
     
-    private static string GetServiceInformation(EncodingMode codeType, QR version, string text)
+    private static string Magic1(EncodingMode a, QR b, string c)
     { 
-        return _codeTypeMode[codeType] + GetDataLength(codeType, version, text);       
+        return _codeTypeMode[a] + Magic(a, b, c);       
     }
 
     private static readonly string[] _magicTextArray = ["11101100", "00010001"];
 
-    private static StringBuilder AlignByByteSize(this StringBuilder sb)
+    private static StringBuilder Magic(this StringBuilder a)
     {
-        var res = string.Empty.PadLeft(sb.Length % 8, '0');
+        var res = string.Empty.PadLeft(a.Length % 8, '0');
         if (res.Length > 0) 
-            sb.Append(res);
-        return sb;
+            a.Append(res);
+        return a;
     }
 
-    private static string FillCodeByCurrentSize(string text, int size)
+    private static string Magic(string a, int b)
     {
-        var sb = new StringBuilder(text);  
+        var sb = new StringBuilder(a);  
 
-        var cnt = (size - text.Length) / 8;       
+        var cnt = (b - a.Length) / 8;       
         for (int i = 0; i < cnt; i++)
         {
             sb.Append(_magicTextArray[i % 2]);
@@ -594,31 +607,27 @@ internal static class QrCodeBuilder2
         return sb.ToString(); 
     }
 
-    private static IEnumerable<string> SplitText(this string text, int length)
-    {
-        return Enumerable.Range(0, text.Length / length)
-            .Select(i => text.Substring(i * length, length));
-    }
-
-    public static List<byte[]> SplitByBlock(string text, int blocksCount)
+    public static List<byte[]> Magic(string a, int b, int c)
     {
         List<byte> tmp = [];
-        foreach (var line in text.SplitText(8))
+        var str = Enumerable.Range(0, a.Length / 8).Select(i => a.Substring(i * 8, 8));
+
+        foreach (var line in str)
         {
             tmp.Add(Convert.ToByte(line,2));
         }
 
-        var size = text.Length / 8 / blocksCount;
-        var extraSize = text.Length / 8 % blocksCount;
+        var size = a.Length / 8 / b;
+        var extraSize = a.Length / 8 % b;
 
         List<byte[]> list = [];
-        for (int i = blocksCount -1 ; i >= 0; i--)
+        for (int i = b -1 ; i >= 0; i--)
         {
             var currentSize = size + (extraSize-- > 0 ? 1 : 0);
             list.Insert(0, new byte[currentSize]);        
         }
 
-        var index = 0;
+        var index = c;
         foreach (var block in list)
         {
             for (int i = 0; i<block.Length; i++)
@@ -632,7 +641,7 @@ internal static class QrCodeBuilder2
 
     #endregion
 
-    #region Correction Data
+    #region Magic
 
     private static readonly Dictionary<EccLevel, byte[]> _countOfErrorCorrectionCodeWords = new()
     {
@@ -721,29 +730,29 @@ internal static class QrCodeBuilder2
                                                     ];
     
     /// <summary>
-    /// Рассчитать блок коррекции
+    /// Magic
     /// </summary>
-    private static byte[] GetCorrectionBlock(byte[] block, byte bytesSize)
+    private static byte[] Magic(byte[] a, byte b)
     {       
-        var size = Math.Max(block.Length, bytesSize);
-        var m = new List<byte>(block);
-        var g = _correctionLevelGeneratingPolynomial[bytesSize];
+        var size = Math.Max(a.Length, b);
+        var m = new List<byte>(a);
+        var g = _correctionLevelGeneratingPolynomial[b];
         var n = g.Length;
         while (m.Count != size)
             m.Add(0);
 
-        for (int i = 0; i < block.Length; i++)
+        for (int i = 0; i < a.Length; i++)
         {
-            byte a = m[0];
-            if (a == 0) continue;
+            byte e = m[0];
+            if (e == 0) continue;
 
             m.RemoveAt(0);
             m.Add(0);
 
-            byte b = _backGaloisField[a];
+            byte bb = _backGaloisField[e];
             for (int x = 0; x < g.Length; x++)
             {
-                var c = (g[x] + b) % 255;
+                var c = (g[x] + bb) % 255;
                 var d = _galoisField[c];
                 m[x] = (byte)(m[x] ^ d);
             }
@@ -752,33 +761,33 @@ internal static class QrCodeBuilder2
         return m.Take(n).ToArray();    
     }
        
-    private static void ScanData(List<byte[]> data, StringBuilder sb)
+    private static void Magic(List<byte[]> a, StringBuilder b)
     {
-        if (data.Count == 1)
+        if (a.Count == 1)
         {
-            foreach (var b in data[0])
+            foreach (var c in a[0])
             {
-                sb.Append(Convert.ToString(b, 2).PadLeft(8, '0'));
+                b.Append(Convert.ToString(c, 2).PadLeft(8, '0'));
             } 
             return;
         }
 
-        var size = data.Max(x=> x.Length);
+        var size = a.Max(x=> x.Length);
         for (int i = 0; i<size; i++)
         {
-            foreach (var bytes in data)
+            foreach (var bytes in a)
             {
                 if (i < bytes.Length)
-                    sb.Append(Convert.ToString(bytes[i], 2).PadLeft(8, '0'));
+                    b.Append(Convert.ToString(bytes[i], 2).PadLeft(8, '0'));
             }            
         }
     }
     
-    private static string CombineDataAndCorrectionBlocks(List<byte[]> data, List<byte[]> correctionBlocks)
+    private static string Magic(List<byte[]> a, List<byte[]> b)
     {       
         var sb = new StringBuilder();
-        ScanData(data, sb);
-        ScanData(correctionBlocks, sb);
+        Magic(a, sb);
+        Magic(b, sb);
         return sb.ToString();
     }
 
@@ -807,46 +816,46 @@ internal static class QrCodeBuilder2
     };
     
     /// <summary>
-    /// Выбор нужной версии QR-кода и уровня коррекции
+    /// Magic
     /// </summary>
-    private static (string encodingData, EccLevel correctionLevel, QR version) GetEncodingData(string text, string preparedData, EncodingMode codeType, QR version, EccLevel? needCorrectionLevel = null)
+    private static (string a, EccLevel b, QR c) Magic(string a, string b, EncodingMode c, QR d, EccLevel? e = null)
     {
-        if (version == NA)
+        if (d == NA)
             throw new NotSupportedException("QR-code version start with 1!");
        
         var sb = new StringBuilder();
-        sb.AppendServiceInformation(codeType, version, text)           
-          .Append(preparedData)
-          .AlignByByteSize();
+        sb.Magic(c, d, a)           
+          .Append(b)
+          .Magic();
 
         var length = sb.Length;
 
-        if ((int)version > 20)
-            throw new NotSupportedException($"Current QR-code does not support version {version} yet!");
+        if ((int)d > 20)
+            throw new NotSupportedException($"Current QR-code does not support version {d} yet!");
 
-        if (needCorrectionLevel.HasValue)
+        if (e.HasValue)
         {
             foreach (var found in _maxData
-                .Where(v => v.Key.version >= version && v.Key.correctionLevel >= needCorrectionLevel.Value)
+                .Where(v => v.Key.version >= d && v.Key.correctionLevel >= e.Value)
                 .Where(l => length < l.Value))
                     return (sb.ToString(), found.Key.correctionLevel, found.Key.version);
         }
 
         foreach (var found in _maxData
-            .Where(v => v.Key.version == version)
+            .Where(v => v.Key.version == d)
             .OrderByDescending(x=>x.Key.correctionLevel)
             .Where(x => length < x.Value))
                 return (sb.ToString(), found.Key.correctionLevel, found.Key.version);  
 
-        if ((int)version > 20)
+        if ((int)d > 20)
             throw new NotSupportedException($"Current QR-code does not support data length {length} yet!");
         
-        return GetEncodingData(text, preparedData, codeType, version + 1, needCorrectionLevel);
+        return Magic(a, b, c, d + 1, e);
     }
 
     #endregion
 
-    #region Service Information
+    #region Magic
 
     /// <summary>
     /// Format information
@@ -890,11 +899,11 @@ internal static class QrCodeBuilder2
     /// <summary>
     /// Информация о маске и уровне коррекции
     /// </summary>
-    private static List<byte[]> AddFormatInformation(this List<byte[]> matrix, EccLevel level, QR version, Mask maskNum)
+    private static List<byte[]> Magic(this List<byte[]> a, QR b, Mask c, EccLevel d)
     {
-        var maskNumAndCorrectionLevel = _masksAndCorrectionLevel[(level, maskNum)];        
-        AddFormatInformation(matrix, maskNumAndCorrectionLevel, version);
-        return matrix;      
+        var maskNumAndCorrectionLevel = _masksAndCorrectionLevel[(d, c)];        
+        Magic(a, b, maskNumAndCorrectionLevel);
+        return a;      
     }
     
     /// <summary>
@@ -909,170 +918,170 @@ internal static class QrCodeBuilder2
                                                                              ];
 
     /// <summary>
-    /// Format information - возле других паттернов позиционирования
+    /// Magic
     /// </summary>
-    private static Pair[] CalcMasksAndCorrectionLevelSecondTemplate(QR version)
+    private static Pair[] Magic(this QR a, int b)
     {
-        var offset = 11 + (int)version * 4;
-        return [(10, offset + 7), (10, offset +6 ), (10, offset + 5), 
-                (10, offset + 4), (10, offset + 3), (10, offset + 2), 
-                (10, offset + 1), (10, offset), (offset + 1, 10),
-                (offset + 2, 10), (offset + 3, 10), (offset + 4, 10),
-                (offset + 5, 10), (offset + 6, 10), (offset + 7, 10)];               
+        var offset = 11 + (int)a * 4;
+        return [(b, offset + 7), (b, offset +6 ), (b, offset + 5), 
+                (b, offset + 4), (b, offset + 3), (b, offset + 2), 
+                (b, offset + 1), (b, offset), (offset + 1, b),
+                (offset + 2, b), (offset + 3, b), (offset + 4, b),
+                (offset + 5, b), (offset + 6, b), (offset + 7, b)];               
     }
 
     /// <summary>
-    /// Занесение в матрицу данных служебной информации
+    /// Magic
     /// </summary>
-    private static void SetInMatrix(Pair[] position, List<byte[]> matrix, int i, char letter)
+    private static void Magic(Pair[] a, List<byte[]> b, int c, char d)
     {
-        (var x, var y) = (position[i].X, position[i].Y); 
-        matrix[y][x] = letter != '1' ? ACTIVE : ZERO;           
+        (var x, var y) = (a[c].X, a[c].Y); 
+        b[y][x] = d != '1' ? ACTIVE : ZERO;           
     }
 
     /// <summary>
-    /// Занесение в матрицу данных служебной информации
+    /// Magic
     /// </summary>
-    private static List<byte[]> AddFormatInformation(this List<byte[]> matrix, string text, QR version)
+    private static List<byte[]> Magic(this List<byte[]> a, QR b, string c)
     {
-        for (int i = 0; i < text.Length; i++)
+        for (int i = 0; i < c.Length; i++)
         {
-            char letter = text[i];
-            SetInMatrix(_masksAndCorrectionLevelTopLeftTemplate, matrix, i, letter);
-            SetInMatrix(CalcMasksAndCorrectionLevelSecondTemplate(version), matrix, i, letter);            
+            char letter = c[i];
+            Magic(_masksAndCorrectionLevelTopLeftTemplate, a, i, letter);
+            Magic(b.Magic(10), a, i, letter);            
         }
-        return matrix;
+        return a;
     }
 
     #endregion
 
-    #region Place Mask
+    #region Magic
 
-    private static bool Mask0((int x, int y) m) => (m.x + m.y) % 2 == 0;
-    private static bool Mask1((int x, int y) m) => m.y % 2 == 0;
-    private static bool Mask2((int x, int y) m) => m.x % 3 == 0;
-    private static bool Mask3((int x, int y) m) => (m.x + m.y) % 3 == 0;
-    private static bool Mask4((int x, int y) m) => (m.x/3 + m.y/2) % 2 == 0;
-    private static bool Mask5((int x, int y) m) => (m.x * m.y) % 2 + (m.x * m.y) % 3 == 0;
-    private static bool Mask6((int x, int y) m) => ((m.x * m.y) % 2 + (m.x * m.y) % 3) % 2 == 0;
-    private static bool Mask7((int x, int y) m) => ((m.x * m.y) % 3 + (m.x + m.y) % 2) % 2 == 0;
+    private static bool Magic0((int x, int y) m) => (m.x + m.y) % 2 == 0;
+    private static bool Magic1((int x, int y) m) => m.y % 2 == 0;
+    private static bool Magic2((int x, int y) m) => m.x % 3 == 0;
+    private static bool Magic3((int x, int y) m) => (m.x + m.y) % 3 == 0;
+    private static bool Magic4((int x, int y) m) => (m.x/3 + m.y/2) % 2 == 0;
+    private static bool Magic5((int x, int y) m) => (m.x * m.y) % 2 + (m.x * m.y) % 3 == 0;
+    private static bool Magic6((int x, int y) m) => ((m.x * m.y) % 2 + (m.x * m.y) % 3) % 2 == 0;
+    private static bool Magic7((int x, int y) m) => ((m.x * m.y) % 3 + (m.x + m.y) % 2) % 2 == 0;
 
     /// <summary>
-    /// Получение маски для инвертирования модулей
+    /// Magic
     /// </summary>
-    private static Predicate<(int,int)> GetMatrixMask(Mask makNum = Mask.M2)
-     => makNum switch 
+    private static Predicate<(int,int)> Magic1(Mask a = Mask.M2)
+     => a switch 
         {
-            Mask.M0 => Mask0,
-            Mask.M1 => Mask1,    
-            Mask.M2 => Mask2,
-            Mask.M3 => Mask3,
-            Mask.M4 => Mask4,
-            Mask.M5 => Mask5,
-            Mask.M6 => Mask6,
-            Mask.M7 => Mask7,
+            Mask.M0 => Magic0,
+            Mask.M1 => Magic1,    
+            Mask.M2 => Magic2,
+            Mask.M3 => Magic3,
+            Mask.M4 => Magic4,
+            Mask.M5 => Magic5,
+            Mask.M6 => Magic6,
+            Mask.M7 => Magic7,
             _ => throw new ArgumentOutOfRangeException("Incorrect Mask Number")
         };
 
     /// <summary>
-    /// Нанесение макси
+    /// Magic
     /// </summary>
-    private static List<byte[]> MaskInvertMatrix(this List<byte[]> matrix, Predicate<(int,int)> maskFunc)
+    private static List<byte[]> Magic1(this List<byte[]> a, Predicate<(int,int)> b)
     {        
-        for (int x = BORDER; x < matrix.Count - BORDER; x++)
+        for (int x = BORDER; x < a.Count - BORDER; x++)
         {
-            for (int y = BORDER; y < matrix.Count - BORDER; y++)
+            for (int y = BORDER; y < a.Count - BORDER; y++)
             {
-                if (maskFunc((y - BORDER, x - BORDER)))
-                    matrix[x][y] = (byte)(ACTIVE - matrix[x][y]);
+                if (b((y - BORDER, x - BORDER)))
+                    a[x][y] = (byte)(ACTIVE - a[x][y]);
             }
         }
-        return matrix;
+        return a;
     } 
 
     /// <summary>
-    /// полоски длиной 5 и более нежелательны
+    /// Magic
     /// </summary>
-    private static (int score, List<byte[]>matrix) ScoreByRule1(this (int score, List<byte[]>matrix) mask)  
+    private static (int a, List<byte[]>b) Magic(this (int a, List<byte[]>b) a)  
     {
         var length = 5;
-        var score = 0;
+        var s = 0;
 
         int cnt;
         int current;
-        for (int x = BORDER; x < mask.matrix.Count - BORDER; x++)
+        for (int x = BORDER; x < a.b.Count - BORDER; x++)
         {
             cnt = 0;
             current = 3;
-            for (int y = BORDER; y < mask.matrix.Count - BORDER; y++)
+            for (int y = BORDER; y < a.b.Count - BORDER; y++)
             {
-                if (mask.matrix[x][y] == current) cnt++;
+                if (a.b[x][y] == current) cnt++;
                 else
                 {
                     if (cnt >= length)
-                        score += cnt - 2;
-                    current = mask.matrix[x][y];
+                        s += cnt - 2;
+                    current = a.b[x][y];
                     cnt = 0;
                 }
             }
         }
 
-        for (int y = BORDER; y<mask.matrix.Count - BORDER; y++)
+        for (int y = BORDER; y<a.b.Count - BORDER; y++)
         {
             cnt = 0;
             current = 3;
-            for (int x = BORDER; x<mask.matrix.Count - BORDER; x++)
+            for (int x = BORDER; x<a.b.Count - BORDER; x++)
             {
-                if (mask.matrix[x][y] == current) cnt++;
+                if (a.b[x][y] == current) cnt++;
                 else 
                 {
                     if (cnt>=length) 
-                        score += cnt - 2;
-                    current = mask.matrix[x][y];
+                        s += cnt - 2;
+                    current = a.b[x][y];
                     cnt = 0;
                 }               
             }
         }
         
-        return (score + mask.score, mask.matrix);
+        return (s + a.a, a.b);
     }
 
     /// <summary>
-    /// Примерно половина модулей должна быть черной
+    /// Magic
     /// </summary>
-    private static (int score, List<byte[]>matrix) ScoreByRule4(this (int score, List<byte[]>matrix) mask)  
+    private static (int a, List<byte[]>b) Magic1(this (int a, List<byte[]>b) a)  
     {   
         var cntActive = 0.0;
         var cntTotal = 0.0;
-        for (int x = BORDER; x < mask.matrix.Count - BORDER; x++)
+        for (int x = BORDER; x < a.b.Count - BORDER; x++)
         {
-            for (int y = BORDER; y < mask.matrix.Count - BORDER; y++)
+            for (int y = BORDER; y < a.b.Count - BORDER; y++)
             {
-                if (mask.matrix[x][y] == ACTIVE) cntActive++;
+                if (a.b[x][y] == ACTIVE) cntActive++;
                 cntTotal++;
             }
         }
 
-        double score = cntActive / cntTotal;
-        score = score * 100 - 50;
-        return (Math.Abs((int)score) * BORDER + mask.score, mask.matrix);
+        double s = cntActive / cntTotal;
+        s = s * 100 - 50;
+        return (Math.Abs((int)s) * BORDER + a.a, a.b);
     }
 
     /// <summary>
-    /// Наилучшая матрица из 8 масок
+    /// Magic
     /// </summary>
-    private static List<byte[]> GetBestMatrix(this QrCodeData data, ref Mask? maskNum)
+    private static List<byte[]> Magic(this QrCodeData a, ref Mask? b)
     {
         var res = Enumerable
             .Range(0, 8)
-            .Select(maskNumber => (maskNumber, (0, data.CreateMatrix((Mask)maskNumber))
-                .ScoreByRule1()
-                .ScoreByRule4()))
-            .MinBy(x=>x.Item2.score);
+            .Select(maskNumber => (maskNumber, (0, a.Magic((Mask)maskNumber))
+                .Magic()
+                .Magic1()))
+            .MinBy(x=>x.Item2.a);
 
-        maskNum = (Mask)res.maskNumber;
+        b = (Mask)res.maskNumber;
         
-        return res.Item2.matrix;
+        return res.Item2.b;
     }
 
     #endregion

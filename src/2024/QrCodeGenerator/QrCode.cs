@@ -19,8 +19,8 @@ public class QrCode(string text, EncodingMode encodingMode = EncodingMode.Binary
     public QR Version => qrCodeVersion;
     public EccLevel CorrectionLevel => correctionLevel ?? EccLevel.L;
     public Mask Mask => maskNum ?? Mask.M2;
-    public string Code { get; } = QrCodeBuilder2.GetQrCode(text, ref qrCodeVersion, encodingMode, ref correctionLevel, ref maskNum, invert);
+    public string Code { get; } = QrCodeBuilder.GetQrCode(text, ref qrCodeVersion, encodingMode, ref correctionLevel, ref maskNum, invert);
     public override string ToString() => Code;
 
-    public static bool IsDEmo {get => QrCodeBuilder2.IsDemo; set=> QrCodeBuilder2.IsDemo = value;}
+    public static bool IsDEmo {get => QrCodeBuilder.IsDemo; set=> QrCodeBuilder.IsDemo = value;}
 }
