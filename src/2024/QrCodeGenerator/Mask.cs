@@ -3,35 +3,35 @@ namespace QrCodeGenerator;
 public enum Mask : byte
 {
     /// <summary>
-    /// ■■■ 000
+    /// ■■■
     /// </summary>
-    M0,
+    M000 = 0,
     /// <summary>
-    /// ■■_ 001
+    /// ■■_
     /// </summary>
-    M1,
+    M001 = 1,
     /// <summary>
-    /// ■_■ 010
+    /// ■_■
     /// </summary>
-    M2,
+    M010 = 2,
     /// <summary>
-    /// ■__ 011
+    /// __■
     /// </summary>
-    M3,
+    M011 = 3,
     /// <summary>
-    /// _■■ 100
+    /// _■■
     /// </summary>
-    M4,
+    M100 = 4,
     /// <summary>
-    /// _■_ 101
+    /// _■_
     /// </summary>
-    M5,
+    M101 = 5,
     /// <summary>
-    /// __■ 110
+    /// __■
     /// </summary>
-    M6,
+    M110 = 6,
     /// <summary>
-    /// ___ 111
+    /// ___
     /// </summary>
-    M7    
+    M111 = 7
 }

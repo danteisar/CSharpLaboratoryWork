@@ -830,7 +830,8 @@ public class Terminal
         bool include5th = true;  
         bool include4th = false;      
         //SetColors(true);
-        var code = new QrCode($"Тест предназначен для прогулявших лекцию {WAS_ON_LAST_LESSON}", EncodingMode.Binary, invert: !IsDark);
+        QrCode.IsInvert = !IsDark;
+        var code = new QrCode($"Тест предназначен для прогулявших лекцию {WAS_ON_LAST_LESSON}", EncodingMode.Binary);
         var list = code.Code.Split('\n').ToList();
         list.Insert(0, "");
         list.Insert(0, "     Использовать темную тему? (y/n)");
