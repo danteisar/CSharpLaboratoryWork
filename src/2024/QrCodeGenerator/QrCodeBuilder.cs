@@ -1,23 +1,61 @@
-using System.Collections;
 using System.Text;
-using System.Text.Unicode;
 
 namespace QrCodeGenerator;
 
 internal static class QrCodeBuilder
 {
+    #region STATE
+
+    /// <summary>
+    /// Show draw by step
+    /// </summary>
     public static bool IsDemo { get; set; }
+    
+    /// <summary>
+    /// Activate if using custom <see cref="CharTemplate"/>
+    /// </summary>
     public static bool IsUtf8 { get; set; }
+    
+    /// <summary>
+    /// Invert string <see cref="CharTemplate"/>
+    /// </summary>
     public static bool IsInvert { get; set; }
 
-    #region GET
-
-    public const int MAX_VERSION = 40;
+    /// <summary>
+    /// Put mask on matrix
+    /// </summary>
+    public static bool ShowMaskOnDataOnly {get; set; } = false;
+    /// <summary>
+    /// Put Mask on matrix
+    /// </summary>
+    public static bool ShowMask {get; set; } = true;
+    /// <summary>
+    /// Показывать байты заполнения
+    /// </summary>
+    public static bool ShowMagicData {get; set; } = true;
+    /// <summary>
+    /// All data is ACTIVE
+    /// </summary>
+    public static bool IsDataDemo {get; set; } = false;
     
-    public static string GetQrCode(string text, ref QR qrCodeVersion, EncodingMode codeType, ref EccLevel? needCorrectionLevel, ref Mask? maskNum)
-    {    
+    /// <summary>
+    /// Put correction blocks on matrix
+    /// </summary>
+    public static bool PutCorrectionBlock {get; set; } = true;
+
+    /// <summary>
+    ///  ▄▀█ - 4 chars string
+    /// </summary>
+    public static string CharTemplate { get; set; } = " ▄▀█";
+
+    #endregion
+
+    #region GET QR-Code    
+    
+    public static string GetQrCode(string text, ref QR qrCodeVersion, ref EncodingMode? codeType, ref EccLevel? needCorrectionLevel, ref Mask? maskNum)
+    {
         // Полный блок с данными + подходящий уровень коррекции ошибок + нужная версия QR-кода 
-        (var encodedData, needCorrectionLevel, qrCodeVersion) = GetEncodingData(text, EncodeData(text, codeType), codeType, qrCodeVersion, needCorrectionLevel); 
+        (var encodedData, needCorrectionLevel, qrCodeVersion) = GetEncodingData(text, EncodeData(text, ref codeType), codeType.Value, qrCodeVersion, needCorrectionLevel); 
 
         // Блоки с данными + байты коррекции
         var length = _maxData[(needCorrectionLevel.Value, qrCodeVersion)];
@@ -52,9 +90,14 @@ internal static class QrCodeBuilder
     #region Base Matrix
 
     /// <summary>
-    /// Граница в два модуля вокруг QR-кода
+    /// Последняя версия QR-кода
     /// </summary>
-    private const int BORDER = 2;
+    public const int MAX_VERSION = 40;
+
+    /// <summary>
+    /// Пустая рамка вокруг QR-кода
+    /// </summary>
+    private const int BORDER = 4;
    
     /// <summary>
     /// Размер рамки для позиционирования QR кода при сканировании
@@ -99,10 +142,10 @@ internal static class QrCodeBuilder
     private static char Scan(byte a, byte b)
         => (a, b) switch
         {
-            (0, 0) => ' ',
-            (0, 1) => '▄',
-            (1, 0) => '▀',
-            (1, 1) => '█',
+            (0, 0) => CharTemplate[0],
+            (0, 1) => CharTemplate[1],
+            (1, 0) => CharTemplate[2],
+            (1, 1) => CharTemplate[3],            
             _ => throw new NotImplementedException(),
         };
     
@@ -112,10 +155,10 @@ internal static class QrCodeBuilder
     private static char ScanInvert(byte a, byte b)
         => (a, b) switch
         {
-            (0, 0) => '█',
-            (0, 1) => '▀',
-            (1, 0) => '▄',
-            (1, 1) => ' ',
+            (0, 0) => CharTemplate[^1],
+            (0, 1) => CharTemplate[^2],
+            (1, 0) => CharTemplate[^3],
+            (1, 1) => CharTemplate[^4],
             _ => throw new NotImplementedException(),
         };
 
@@ -145,6 +188,37 @@ internal static class QrCodeBuilder
         var res = 10240 + Convert.ToByte(tmp, 2);
         return Convert.ToChar(res);
     }
+    
+    [Obsolete]
+    private static string _samples = "  ▖ ▘ ▙ ▚ ▛ ▜ ▝ ▞";
+
+    [Obsolete]
+    private static StringBuilder CubesFont(this StringBuilder sb, List<byte[]> matrix)
+    {
+        var height = matrix.Count + (matrix.Count % 2);
+        var width = matrix.Count + (matrix.Count % 2);
+
+        for (int row = 0; row < height; row+=2)
+        {
+            for(int column = 0; column < width; column+=2)
+            {
+                var tmp = string.Empty;
+                for (int x = 0; x < 2 ; x++)
+                {
+                    for (int y = 0; y < 2; y++)
+                    {
+                        if (y + row >= matrix.Count || x + column >= matrix.Count)
+                            tmp += '0';
+                        else 
+                            tmp += matrix[y + row][x + column] != ACTIVE ? '1' : '0';
+                    }  
+                }                               
+                sb.Append(ScanBySize(tmp));  
+            }
+            sb.AppendLine();
+        }
+        return sb;
+    }    
 
     private static StringBuilder BrawlerFont(this StringBuilder sb, List<byte[]> matrix)
     {
@@ -182,6 +256,7 @@ internal static class QrCodeBuilder
         }
         return sb;
     }    
+    
     /// <summary>
     /// Создание болванки матрицы, заполненный <see cref="ACTIVE"/>
     /// </summary>
@@ -274,14 +349,11 @@ internal static class QrCodeBuilder
 
     private static List<byte[]> AddTiming(this List<byte[]> matrix, bool isMask = false)
     {
-        for (int i = BORDER; i < matrix.Count - BORDER - 6; i++)
+        var offset = BORDER + 6;
+        for (int i = offset; i < matrix.Count - offset; i++)
         {
-            matrix[i][BORDER + 6] = !isMask ? (byte)(i % 2) : ZERO;
-        }
-        for (int i = BORDER; i < matrix[0].Length - BORDER - 6; i++)
-        {
-            matrix[BORDER + 6][i] = !isMask ? (byte)(i % 2) : ZERO;
-        }
+            matrix[i][offset] = matrix[offset][i] = !isMask ? (byte)((i - offset) % 2) : ZERO;
+        }       
         return matrix;
     }
 
@@ -440,12 +512,11 @@ internal static class QrCodeBuilder
     private static List<byte[]> CreateMatrix(this QrCodeData data, Mask maskNum)
     {
         var size = GetMatrixSizeForVersion(data.Version);
+        var mask = GetMatrixMaskPredicate(maskNum);
         var tmp = CreateQrCodeMatrix(size).Demo()    
-            .PutDataInMatrix(data.Data, data.Version).Demo()
-            .MaskInvertMatrix(GetMatrixMask(maskNum)).Demo()
-            .AddFormatInformation(data.CorrectionLevel, data.Version, maskNum).Demo()
-            ;
-
+            .PutDataInMatrix(data.Data, data.Version, mask).Demo()
+            .AddFormatInformation(data.CorrectionLevel, data.Version, maskNum).Demo();
+            
         int posX1 = BORDER + 3;
         int posX2 = tmp.Count - BORDER - 4;
         int posY = BORDER + 3;
@@ -499,7 +570,7 @@ internal static class QrCodeBuilder
     #endregion
 
     #region Place Data in Matrix
-
+    
     /// <summary>
     /// Нельзя размещать в POSITION_DETECTION
     /// </summary>
@@ -511,10 +582,9 @@ internal static class QrCodeBuilder
     /// <summary>
     /// Размещение данных на матрице
     /// </summary>
-    private static List<byte[]> PutDataInMatrix(this List<byte[]> matrix, string text, QR version)
+    private static List<byte[]> PutDataInMatrix(this List<byte[]> matrix, string text, QR version, Predicate<(int,int)> mask)
     {        
         var blockedModules = CreateOrderMatrix(version); 
-
         var size = matrix.Count - BORDER * 2;
         var up = true; 
         var index = 0; 
@@ -522,22 +592,17 @@ internal static class QrCodeBuilder
         
         for (var column = size + BORDER - 1; column >= BORDER; column -= 2)
         {
-            if (column == 8) column--;               
+            if (column == BORDER + 6) column--;               
 
             for (var i = 0; i < size; i++)
-            {    
-                
-
+            {
                 var row = up ? size + BORDER - i - 1 : i + BORDER;
-
-                if (index < count && !blockedModules.IsBlocked(row, column))
-                    PlaceData(matrix, blockedModules, row, column, text[index++]);                       
+                
+                if (!blockedModules.IsBlocked(row, column))
+                    PlaceData(matrix, blockedModules, row, column, text, mask, ref index);                       
                     
-                if (index < count && column > 0 && !blockedModules.IsBlocked(row, column - 1))
-                    PlaceData(matrix, blockedModules, row, column - 1, text[index++]);
-
-                if (index >= count) 
-                    return matrix;
+                if (column > 0 && !blockedModules.IsBlocked(row, column - 1))
+                    PlaceData(matrix, blockedModules, row, column - 1, text, mask, ref index);              
 
                 if (IsDemo)
                 {
@@ -561,28 +626,62 @@ internal static class QrCodeBuilder
     /// <summary>
     /// Размещение бита информации
     /// </summary>
-    private static void PlaceData(List<byte[]> matrix, List<byte[]> blockedModules, int row, int column, char letter)
+    private static void PlaceData(List<byte[]> matrix, List<byte[]> blockedModules, int row, int column, string text, Predicate<(int,int)> mask, ref int index)
     {       
-        blockedModules[row][column] = matrix[row][column] = letter != '1' ? ACTIVE : ZERO;
+        var count = text.Length;
+        var letter = index < count ? text[index] : '0';        
+        var hasData = index < count;
+
+        var showMask = ShowMask && (ShowMaskOnDataOnly && hasData || !ShowMaskOnDataOnly) && mask((column - BORDER, row - BORDER));
+
+        if (hasData)
+            blockedModules[row][column] = matrix[row][column] = IsDataDemo || letter == '1' 
+                ? ZERO 
+                : ACTIVE;
+
+        if (showMask)
+            blockedModules[row][column] = matrix[row][column] = (byte)(ACTIVE - matrix[row][column]);
+
+        index++;    
     }
 
     #endregion
 
     #region Encode Data
 
-    private static string EncodeData(string text, EncodingMode codeType){
-        var sb = new StringBuilder();
-        var tmp = codeType switch {
-            EncodingMode.AlphaNumeric => EncodeAlphaNumeric(text.ToUpper()),
-            EncodingMode.Numeric => EncodeNumeric(text),
-            _ => EncodeBinary(text)
-        };
-        foreach (var str in tmp)
-            sb.Append(str);
+    private const string END_OF_DATA = "0000";
 
-        return sb.ToString();
+    private static string EncodeData(string text, ref EncodingMode? codeType)
+    {       
+        if (string.IsNullOrEmpty(text))
+            throw new InvalidDataException("No data to encode!");
+
+        if (!codeType.HasValue)
+        {
+            if (text.All(x => char.IsDigit(x))) 
+            {
+                codeType = EncodingMode.Numeric;                
+            }     
+            else if (text.All(x => letterNumberArray.Any(y => x == y)))
+            {
+                codeType = EncodingMode.AlphaNumeric;   
+            }
+            else
+            {
+                codeType = EncodingMode.Binary;
+            }
+        }
+        var sb = codeType switch
+        {
+            EncodingMode.Numeric => EncodeNumeric(text),
+            EncodingMode.AlphaNumeric => EncodeAlphaNumeric(text.ToUpper()),
+            EncodingMode.Binary => EncodeBinary(text),
+            _ => throw new NotSupportedException("Current type of encoding not supported!"),
+        };
+
+        return sb.Append(END_OF_DATA).ToString();
     }
-    
+
     private static readonly char[] letterNumberArray = {
                                                     '0','1','2','3','4','5','6','7','8','9',
                                                     'A','B','C','D','E','F','G','H','I','J',
@@ -591,61 +690,67 @@ internal static class QrCodeBuilder
                                                     '+','-','.','/',':'
                                                 };
 
-    private static void AddTo(List<string> list, int num, byte lengthType = 8)
+    private static void AddTo(StringBuilder sb, int num, byte lengthType)
     {
         var str = Convert.ToString(num, 2);
-        list.Add(str.PadLeft(lengthType, '0'));
+        sb.Append(str.PadLeft(lengthType, '0'));
     }
 
-    private static List<string> EncodeAlphaNumeric(string text)
-    {
-        var res = new List<string>();
+    private static StringBuilder EncodeAlphaNumeric(string text)
+    {      
+        StringBuilder sb = new();  
         var pos = 0;
-        while (pos < text.Length - 2)
+        while (pos <= text.Length-2)
         {
-            var index1 = Array.IndexOf(letterNumberArray, text[pos]);
-            var index2 = Array.IndexOf(letterNumberArray, text[pos + 1]);
-            AddTo(res, index1 * 45 + index2, 11);
+            var number1 = Array.IndexOf(letterNumberArray, text[pos]);
+            var number2 = Array.IndexOf(letterNumberArray, text[pos + 1]);
+            if (number1 == -1) throw new InvalidDataException($"Not supported character {text[pos]}!");
+            if (number2 == -1) throw new InvalidDataException($"Not supported character {text[pos + 1]}!");
+            var number = number1 * 45 + number2;
+            AddTo(sb, number, 11);
             pos += 2;
         }
         if (text.Length % 2 == 1)
         {
-            AddTo(res, Array.IndexOf(letterNumberArray, text[^1]), 6);
-        }
-        return res;
+            var number = Array.IndexOf(letterNumberArray, text[^1]);
+            if (number == -1) throw new InvalidDataException($"Not supported character {text[^1]}!");
+            AddTo(sb, number, 6);
+        } 
+        return sb;
     }
 
-    private static List<string> EncodeNumeric(string text)
+    private static StringBuilder EncodeNumeric(string text)
     {
-        var res = new List<string>();
+        StringBuilder sb = new();
         var pos = 0;
-        var length = text.Length;
-        while (pos < text.Length - 3)
+        while (pos <= text.Length-3)
         {
-            var number = text.Substring(pos, 3);
-            AddTo(res, Convert.ToInt32(number));
+            var number = Convert.ToInt32(text.Substring(pos, 3));
+            AddTo(sb, number, 10);
             pos += 3;
         }
         if (text.Length % 3 == 2)
         {
-            AddTo(res, Convert.ToInt32(text.Substring(length - 3, 2)), 7);
+            var number = Convert.ToInt32(text.Substring(pos, 2));
+            AddTo(sb, number, 7);
         }
         else if (text.Length % 3 == 1)
         {
-            AddTo(res, Convert.ToInt32(text.Substring(length - 2, 1)), 4);
+            var number = Convert.ToInt32(text.Substring(pos, 1));
+            AddTo(sb, number, 4); 
         }
-        return res;
+        return sb;
     }
 
-    private static List<string> EncodeBinary(string text)
-    {
-        var res = new List<string>();        
-        var numbers = Encoding.UTF8.GetBytes(text);
-        foreach (var number in numbers)
+    private static StringBuilder EncodeBinary(string text)
+    {       
+        StringBuilder sb = new();
+        var bytes = Encoding.UTF8.GetBytes(text);
+        foreach (var b in bytes)
         {
-            AddTo(res, Convert.ToInt32(number));
-        }        
-        return res;
+            AddTo(sb, Convert.ToInt32(b), 8);
+        } 
+        return sb;       
     }
 
     private static readonly Dictionary<EncodingMode, string> _codeTypeMode = new()
@@ -665,7 +770,7 @@ internal static class QrCodeBuilder
             (< 27, EncodingMode.Numeric) => 12,
             (< 27, EncodingMode.AlphaNumeric) => 11,
             (< 27, EncodingMode.Binary) => 16,
-            (< 27, _) => 10,
+            // (< 27, _) => 10,
             (_, EncodingMode.Numeric) => 14,
             (_, EncodingMode.AlphaNumeric) => 13,
             (_, EncodingMode.Binary) => 16,
@@ -695,24 +800,25 @@ internal static class QrCodeBuilder
         return _codeTypeMode[codeType] + GetDataLength(codeType, version, text);       
     }
 
-    private static readonly string[] _magicTextArray = ["11101100", "00010001"];
+    private static readonly string[] _fillPattern = ["11101100", "00010001"]; // "█▀█  ▄ ▄" pattern
 
     private static StringBuilder AlignByByteSize(this StringBuilder sb)
     {
-        var res = string.Empty.PadLeft(sb.Length % 8, '0');
-        if (res.Length > 0) 
-            sb.Append(res);
+        while (sb.Length % 8 != 0)
+            sb.Append('0');     
         return sb;
     }
 
     private static string FillCodeByCurrentSize(string text, int size)
     {
+        if (!ShowMagicData) return text;
+        
         var sb = new StringBuilder(text);  
 
         var cnt = (size - text.Length) / 8;       
         for (int i = 0; i < cnt; i++)
         {
-            sb.Append(_magicTextArray[i % 2]);
+            sb.Append(_fillPattern[i % 2]);
         }
         return sb.ToString(); 
     }
@@ -767,10 +873,10 @@ internal static class QrCodeBuilder
 
     private static readonly Dictionary<EccLevel, byte[]> _correctionLevelBlocksCount = new()
     {
-        {EccLevel.L, [NA,1,1,1,1,1,2,2,2,2,4,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25]},
-        {EccLevel.M, [NA,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49]},
-        {EccLevel.Q, [NA,1,1,2,2,4,4,6,6,8,8,8,10,12,16,12,17,16,18,21,20,23,23,25,27,29,34,34,35,38,40,43,45,48,51,53,56,59,62,65,68]},
-        {EccLevel.H, [NA,1,1,2,4,4,4,5,6,8,8,11,11,16,16,16,18,16,19,21,25,25,25,34,30,32,35,37,40,42,45,48,51,54,57,60,63,66,70,74,77,81]},
+        {EccLevel.L, [NA,01,01,01,01,01,02,02,02,02,04,04,04,04,04,06,06,06,06,07,08,08,09,09,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25]},
+        {EccLevel.M, [NA,01,01,01,02,02,04,04,04,05,05,05,08,09,09,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49]},
+        {EccLevel.Q, [NA,01,01,02,02,04,04,06,06,08,08,08,10,12,16,12,17,16,18,21,20,23,23,25,27,29,34,34,35,38,40,43,45,48,51,53,56,59,62,65,68]},
+        {EccLevel.H, [NA,01,01,02,04,04,04,05,06,08,08,11,11,16,16,18,16,19,21,25,25,25,34,30,32,35,37,40,42,45,48,51,54,57,60,63,66,70,74,77,81]},
     };
 
     private static readonly Dictionary<byte, byte[]> _correctionLevelGeneratingPolynomial = new()
@@ -848,14 +954,15 @@ internal static class QrCodeBuilder
     /// </summary>
     private static byte[] GetCorrectionBlock(byte[] block, byte bytesSize)
     {       
-        var size = Math.Max(block.Length, bytesSize);
+        var size = Math.Max(block.Length, bytesSize);        
         var m = new List<byte>(block);
-        var g = _correctionLevelGeneratingPolynomial[bytesSize];
-        var n = g.Length;
         while (m.Count != size)
             m.Add(0);
 
-        for (int i = 0; i < block.Length; i++)
+        var g = _correctionLevelGeneratingPolynomial[bytesSize];
+        var n = g.Length;       
+
+        for (int x = 0; x < block.Length; x++)
         {
             byte a = m[0];
             m.RemoveAt(0);
@@ -865,11 +972,11 @@ internal static class QrCodeBuilder
                continue;
 
             byte b = _backGaloisField[a];
-            for (int x = 0; x < g.Length; x++)
+            for (int i = 0; i < n; i++)
             {
-                var c = (g[x] + b) % 255;
+                var c = (g[i] + b) % 255;
                 var d = _galoisField[c];
-                m[x] = (byte)(m[x] ^ d);
+                m[i] = (byte)(d ^ m[i]);
             }
         }
          
@@ -902,7 +1009,8 @@ internal static class QrCodeBuilder
     {       
         var sb = new StringBuilder();
         ScanData(data, sb);
-        ScanData(correctionBlocks, sb);
+        if (PutCorrectionBlock)
+            ScanData(correctionBlocks, sb);
         return sb.ToString();
     }
 
@@ -947,8 +1055,7 @@ internal static class QrCodeBuilder
         {(EccLevel.H, QR.V37),  8768}, {(EccLevel.Q, QR.V37), 11408}, {(EccLevel.M, QR.V37), 15936}, {(EccLevel.L, QR.V37), 20528},    
         {(EccLevel.H, QR.V38),  9136}, {(EccLevel.Q, QR.V38), 12016}, {(EccLevel.M, QR.V38), 16816}, {(EccLevel.L, QR.V38), 21616},    
         {(EccLevel.H, QR.V39),  9776}, {(EccLevel.Q, QR.V39), 12656}, {(EccLevel.M, QR.V39), 17728}, {(EccLevel.L, QR.V39), 22496},    
-        {(EccLevel.H, QR.V40), 10208}, {(EccLevel.Q, QR.V40), 13328}, {(EccLevel.M, QR.V40), 18672}, {(EccLevel.L, QR.V40), 23648},    
-
+        {(EccLevel.H, QR.V40), 10208}, {(EccLevel.Q, QR.V40), 13328}, {(EccLevel.M, QR.V40), 18672}, {(EccLevel.L, QR.V40), 23648},
     };
     
     /// <summary>
@@ -961,27 +1068,30 @@ internal static class QrCodeBuilder
        
         var sb = new StringBuilder();
         sb.AppendServiceInformation(codeType, version, text)           
-          .Append(preparedData)
+          .Append(preparedData)          
           .AlignByByteSize();
 
         var length = sb.Length;
-
+       
         if ((int)version > MAX_VERSION)
             throw new NotSupportedException($"Current QR-code does not support version {version}!");
+
+        if (needCorrectionLevel.HasValue && _maxData[(needCorrectionLevel.Value, version)] > length)
+            return (sb.ToString(), needCorrectionLevel.Value, version);
 
         if (needCorrectionLevel.HasValue)
         {
             foreach (var found in _maxData
                 .Where(v => v.Key.version >= version && v.Key.correctionLevel >= needCorrectionLevel.Value)
                 .Where(l => length < l.Value))
-                    return (sb.ToString(), found.Key.correctionLevel, found.Key.version);
+                    return GetEncodingData(text, preparedData, codeType, found.Key.version, found.Key.correctionLevel);// (sb.ToString(), found.Key.correctionLevel, found.Key.version);
         }
 
         foreach (var found in _maxData
             .Where(v => v.Key.version == version)
             .OrderByDescending(x=>x.Key.correctionLevel)
             .Where(x => length < x.Value))
-                return (sb.ToString(), found.Key.correctionLevel, found.Key.version);  
+                return GetEncodingData(text, preparedData, codeType, found.Key.version, found.Key.correctionLevel);  
 
         if ((int)version > MAX_VERSION)
             throw new NotSupportedException($"Current QR-code does not support data length {length}!");
@@ -1046,11 +1156,21 @@ internal static class QrCodeBuilder
     /// Format information - порядок размещения возле верхнего левого паттерна позиционирования
     /// </summary>
     private static readonly Pair[] _masksAndCorrectionLevelTopLeftTemplate = [
-                                                                              (02, 10), (03, 10), (04, 10), 
-                                                                              (05, 10), (06, 10), (07, 10), 
-                                                                              (09, 10), (10, 10), (10, 09),
-                                                                              (10, 07), (10, 06), (10, 05),
-                                                                              (10, 04), (10, 03), (10, 02),
+                                                                              (BORDER + 0, BORDER + POSITION_DETECTION), 
+                                                                              (BORDER + 1, BORDER + POSITION_DETECTION), 
+                                                                              (BORDER + 2, BORDER + POSITION_DETECTION), 
+                                                                              (BORDER + 3, BORDER + POSITION_DETECTION), 
+                                                                              (BORDER + 4, BORDER + POSITION_DETECTION), 
+                                                                              (BORDER + 5, BORDER + POSITION_DETECTION), 
+                                                                              (BORDER + 7, BORDER + POSITION_DETECTION), 
+                                                                              (BORDER + POSITION_DETECTION, BORDER + POSITION_DETECTION - 0), 
+                                                                              (BORDER + POSITION_DETECTION, BORDER + POSITION_DETECTION - 1),
+                                                                              (BORDER + POSITION_DETECTION, BORDER + POSITION_DETECTION - 3), 
+                                                                              (BORDER + POSITION_DETECTION, BORDER + POSITION_DETECTION - 4), 
+                                                                              (BORDER + POSITION_DETECTION, BORDER + POSITION_DETECTION - 5),
+                                                                              (BORDER + POSITION_DETECTION, BORDER + POSITION_DETECTION - 6), 
+                                                                              (BORDER + POSITION_DETECTION, BORDER + POSITION_DETECTION - 7), 
+                                                                              (BORDER + POSITION_DETECTION, BORDER + POSITION_DETECTION - 8)
                                                                              ];
 
     /// <summary>
@@ -1058,13 +1178,23 @@ internal static class QrCodeBuilder
     /// </summary>
     private static Pair[] CalcMasksAndCorrectionLevelSecondTemplate(QR version)
     {
-        var offset = 11 + (int)version * 4;
-        return [(10, offset + 7), (10, offset + 6), (10, offset + 5), 
-                (10, offset + 4), (10, offset + 3), (10, offset + 2), 
-                (10, offset + 1), 
-                (offset, 10), (offset + 1, 10),
-                (offset + 2, 10), (offset + 3, 10), (offset + 4, 10),
-                (offset + 5, 10), (offset + 6, 10), (offset + 7, 10)];               
+        var offset1 = BORDER + POSITION_DETECTION;
+        var offset = offset1 + 1 + (int)version * 4;
+        return [(offset1, offset + 7), 
+                (offset1, offset + 6), 
+                (offset1, offset + 5), 
+                (offset1, offset + 4), 
+                (offset1, offset + 3), 
+                (offset1, offset + 2), 
+                (offset1, offset + 1), 
+                (offset + 0, offset1), 
+                (offset + 1, offset1),
+                (offset + 2, offset1), 
+                (offset + 3, offset1), 
+                (offset + 4, offset1),
+                (offset + 5, offset1), 
+                (offset + 6, offset1), 
+                (offset + 7, offset1)];               
     }
 
     /// <summary>
@@ -1087,14 +1217,13 @@ internal static class QrCodeBuilder
             char letter = text[i];
             SetInMatrix(_masksAndCorrectionLevelTopLeftTemplate, matrix, i, letter);
             SetInMatrix(template, matrix, i, letter);            
-        }
-        //matrix[template[8].Y][template[8].X - 1] = ACTIVE;
+        }        
         return matrix;
     }
 
     #endregion
 
-    #region Place Mask
+    #region Mask
 
     private static bool Mask0((int x, int y) m) => (m.x + m.y) % 2 == 0;
     private static bool Mask1((int x, int y) m) => m.y % 2 == 0;
@@ -1108,7 +1237,7 @@ internal static class QrCodeBuilder
     /// <summary>
     /// Получение маски для инвертирования модулей
     /// </summary>
-    private static Predicate<(int,int)> GetMatrixMask(Mask makNum = Mask.M111)
+    private static Predicate<(int,int)> GetMatrixMaskPredicate(Mask makNum = Mask.M111)
      => makNum switch 
         {
             Mask.M101 => Mask0,
@@ -1125,13 +1254,13 @@ internal static class QrCodeBuilder
     /// <summary>
     /// Нанесение макси
     /// </summary>
-    private static List<byte[]> MaskInvertMatrix(this List<byte[]> matrix, Predicate<(int,int)> maskFunc)
+    private static List<byte[]> MaskInvertMatrix(this List<byte[]> matrix, List<byte[]> forbiddenMask, Predicate<(int,int)> maskFunc)
     {        
         for (int x = BORDER; x < matrix.Count - BORDER; x++)
         {
             for (int y = BORDER; y < matrix.Count - BORDER; y++)
             {
-                if (maskFunc((y - BORDER, x - BORDER)))
+                if (forbiddenMask[x][y] == ACTIVE && maskFunc((y - BORDER, x - BORDER)))
                     matrix[x][y] = (byte)(ACTIVE - matrix[x][y]);
             }
         }
@@ -1203,7 +1332,7 @@ internal static class QrCodeBuilder
 
         double score = cntActive / cntTotal;
         score = score * 100 - 50;
-        return (Math.Abs((int)score) * BORDER + mask.score, mask.matrix);
+        return (Math.Abs((int)score) * 2 + mask.score, mask.matrix);
     }
 
     /// <summary>

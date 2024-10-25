@@ -653,10 +653,10 @@ internal static class QrCodeMagicBuilder
 
     private static readonly Dictionary<EccLevel, byte[]> _correctionLevelBlocksCount = new()
     {
-        {EccLevel.L, [NA,1,1,1,1,1,2,2,2,2,4,4,4,4,4,4,6,6,6,6,7,8]},
-        {EccLevel.M, [NA,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16]},
-        {EccLevel.Q, [NA,1,1,2,2,4,4,6,6,8,8,8,10,12,16,12,17,16,18,21,20]},
-        {EccLevel.H, [NA,1,1,2,4,4,4,5,6,8,8,11,11,16,16,16,18,16,19,21,25,25]},
+        {EccLevel.L, [NA,01,01,01,01,01,02,02,02,02,04,04,04,04,04,06,06,06,06,07,08]},
+        {EccLevel.M, [NA,01,01,01,02,02,04,04,04,05,05,05,08,09,09,10,10,11,13,14,16]},
+        {EccLevel.Q, [NA,01,01,02,02,04,04,06,06,08,08,08,10,12,16,12,17,16,18,21,20]},
+        {EccLevel.H, [NA,01,01,02,04,04,04,05,06,08,08,11,11,16,16,18,16,19,21,25,25]},
     };
 
     private static readonly Dictionary<byte, byte[]> _correctionLevelGeneratingPolynomial = new()
@@ -744,10 +744,11 @@ internal static class QrCodeMagicBuilder
         for (int i = 0; i < a.Length; i++)
         {
             byte e = m[0];
-            if (e == 0) continue;
 
             m.RemoveAt(0);
             m.Add(0);
+
+            if (e == 0) continue;            
 
             byte bb = _backGaloisField[e];
             for (int x = 0; x < g.Length; x++)
