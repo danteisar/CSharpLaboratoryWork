@@ -20,6 +20,9 @@ public class Terminal
         if (Console.WindowWidth < 123)
             Console.WindowWidth = 123;
 
+        if (Console.WindowHeight < 30)
+            Console.WindowHeight = 30;
+
         _width = Console.WindowWidth - 1;
         _field = new Item[_width + 1, FIELD_HEIGHT + 1];
         _customer = new Customer();
