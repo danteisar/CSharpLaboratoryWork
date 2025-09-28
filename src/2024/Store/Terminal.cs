@@ -1,12 +1,13 @@
 ﻿using Barcode.Lab3;
 using Product.Lab4;
-using Showcase.Lab4;
-using System.Text;
-using static Store.ConsoleExtensions.ConsoleWriter;
-using static Store.ConsoleExtensions.CodeWriter;
-using static Store.Constants;
-using Store.ConsoleWrappers;
 using QrCodeGenerator;
+using Showcase.Lab4;
+using Store.ConsoleWrappers;
+using System.Text;
+using static Store.ConsoleExtensions.CodeWriter;
+using static Store.ConsoleExtensions.ConsoleWriter;
+using static Store.Constants;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Store;
 
@@ -47,7 +48,8 @@ public class Terminal
     private readonly (int x, int y) _storeNamePos;
     private readonly (int x, int y) _storeCodePos;
     private readonly (int x, int y) _selectedNamePos;   
-    private const string WAS_ON_LAST_LESSON = "19.09.2024";
+
+    private const string TEST_DATE = "27.09.2025";
 
     #endregion
 
@@ -677,12 +679,6 @@ public class Terminal
         }
 
         ShowOperation(o, ACTIVE_COLOR);
-
-        //action?.Invoke();
-
-        //Thread.Sleep(100);
-
-        //ShowOperation(o, HELP_COLOR);
     }
     
     private void VisualizeOperation(Operations o, Action action = null)
@@ -821,6 +817,32 @@ public class Terminal
         }
     }
 
+    private static bool EnterPassword()
+    {
+        try
+        {
+            string[] text = ["Введите пароль:", ""];
+            ShowMessage(text, false, BACKGROUND_COLOR, FOREGROUND_COLOR, 0);
+
+            Console.CursorVisible = true;
+
+            var posX = (Console.WindowWidth - text.Max(x => x.Length) + 2) / 2 + 1;
+            var posY = (Console.WindowHeight - text.Length + 2) / 2 + 2;
+
+            Console.SetCursorPosition(posX, posY);
+            var tmp = Console.ReadLine();
+            tmp = tmp.Length > 8 ? tmp.Substring(0, 8) : tmp;
+            if (string.Equals(TEST_DATE.Replace(".", ""), tmp)) 
+                return true;            
+        }
+        catch
+        {
+            //ignore         
+        }
+        Console.CursorVisible = false;
+        ShowMessage(["Ошибка доступа :C"], false, ERROR_COLOR, WHITE_FOREGROUND_COLOR);
+        return false;
+    }
     #endregion
 
     #region Education
@@ -831,7 +853,7 @@ public class Terminal
         bool include4th = false;      
         //SetColors(true);
         QrCode.IsInvert = !IsDark;
-        var code = new QrCode($"Тест предназначен для прогулявших лекцию {WAS_ON_LAST_LESSON}", EncodingMode.Binary);
+        var code = new QrCode($"Тест предназначен для прогулявших лекцию {TEST_DATE}", EncodingMode.Binary);
         var list = code.Code.Split('\n').ToList();
         list.Insert(0, "");
         list.Insert(0, "     Использовать темную тему? (y/n)");
@@ -843,23 +865,30 @@ public class Terminal
 
         if (IsDemo)
         { 
-            key = AskMessage([$"Вы были {WAS_ON_LAST_LESSON} на лекции? (y/n)"], ConsoleKey.Y, ConsoleKey.N);
+            key = AskMessage([$"Вы были {TEST_DATE} на лекции? (y/n)"], ConsoleKey.Y, ConsoleKey.N);
             switch (key.Key)
             {
                 case ConsoleKey.Y:               
                     if (AskMessage(["Вы хотите посмотреть, что должен выводить терминал", 
-                                    "    при сдаче четырех лабораторных работ?"]))                    
+                                    "        при сдаче четырех лабораторных работ ",
+                                    "            без интерактивного режима?"]))                    
                     {
+                        ShowLabsInfo();
                         include5th = false; 
                         include4th = true;
                     }      
                     else
                         return true;                          
                     break;
-                default: 
-                    IncludeLoading = true;
-                    include5th = PassTheTest(key);
-                    break;
+                default:
+                    if (EnterPassword())
+                    {
+                        IncludeLoading = true;
+                        include5th = PassTheTest(key);
+                    }
+                    else
+                        return true;
+                break;
             }
             IsDemo = false;
         }
@@ -869,6 +898,7 @@ public class Terminal
             if (!PassTheTest(key, 100, false))
             {
                 ShowMessage(["Вы успешно прошли тестирование!"], true, COLOR, WHITE_FOREGROUND_COLOR);
+                ShowLabsInfo();
             }
             else
             {
@@ -896,6 +926,17 @@ public class Terminal
         return true;      
     }
     
+    private static void ShowLabsInfo()
+    {
+        ShowMessage(["   Для полной сдачи всех лабораторных работ",
+                     "необходим интерактивный режим для пользователя:",
+                     "  1. Создание и удаление витрины",
+                     "  2. Добавление, перемещение и удаление товара",
+                     "  3. Поиск товара",
+                     "  4. Сортировка товара"],
+        true, BACKGROUND_COLOR, FOREGROUND_COLOR);
+    }
+
     private static bool PassTheTest(ConsoleKeyInfo key, int tryCount = 4, bool showRes = true)
     {
         if (key.Modifiers == (ConsoleModifiers.Shift | ConsoleModifiers.Alt))
@@ -935,7 +976,7 @@ public class Terminal
 
         if (was) 
         {
-            Barcode3 barcode3 = WAS_ON_LAST_LESSON;
+            Barcode3 barcode3 = TEST_DATE;
             Console.WriteLine(barcode3);
         }
 

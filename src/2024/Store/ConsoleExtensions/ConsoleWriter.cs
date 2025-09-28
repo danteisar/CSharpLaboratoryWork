@@ -135,7 +135,7 @@ internal static class ConsoleWriter
         AnimateText(4, y, ["TERMINAL.EXE"], 50);
         Thread.Sleep(500);
         ClearTerminal();
-        Barcode1 logo = "TERMINAL v.1.2";
+        Barcode1 logo = "TERMINAL v.1.3.0";
         var text = logo.ToString().Split('\n');
         var posX = (Console.WindowWidth - text[0].Length + 2) / 2;
         var posY = (Console.WindowHeight - 8) / 2;
