@@ -1,6 +1,4 @@
-﻿using System;
-using System.Text;
-using static System.Net.Mime.MediaTypeNames;
+﻿using System.Text;
 
 namespace Barcode.Lab1;
 
@@ -9,19 +7,19 @@ public static class BarcodeGenerator
     /// <summary>
     ///  Кодирование текста в штрих-код
     /// </summary>
-    public static string Encrypt(this string code, out int paddings)
-    {      
-        var tmp = code.Parse();           
-                
+    public static string ToBarcode(this string code, out int paddings)
+    {
+        var tmp = code.GetBarcode();
+
         var result = new StringBuilder();
-        foreach (var s1 in tmp.ToString().SplitText(2)) 
+        foreach (var s1 in tmp.ToString().SplitText(2))
             result.Append(GetBar(s1));
 
         paddings = result.Length;
 
         var empty = "\n".PadLeft(paddings + 1, Bars[0]);
 
-        var s = new StringBuilder((result.Length+1)*Height + 2 * (paddings + 2));
+        var s = new StringBuilder((result.Length + 1) * Height + 2 * (paddings + 2));
         for (var i = 0; i < Height; i++)
         {
             s.Append(result).AppendLine();
@@ -37,11 +35,11 @@ public static class BarcodeGenerator
     /// </summary>
     public static int Encrypt(this string code)
     {
-        code.Encrypt(out var paddings);
+        code.ToBarcode(out var paddings);
         return paddings;
     }
 
-    private static StringBuilder Parse(this string text)
+    private static StringBuilder GetBarcode(this string text)
     {
         var index = 0;
         var tmp = new StringBuilder(Frame);
@@ -49,7 +47,7 @@ public static class BarcodeGenerator
         var isDigitMode = text.Length > 1 && Checknum(text, index, 2);
 
         #region Patterns  
-        
+
         AddPattern(tmp, check, isDigitMode ? StartNumbers : StartText);
         while (index < text.Length)
         {
@@ -85,7 +83,7 @@ public static class BarcodeGenerator
         if (isDigitMode)
         {
             AddPattern(tmp, check, Array.IndexOf(NumberSymbols, text.Substring(index, 2)));
-            index+=2;
+            index += 2;
         }
         else
         {
@@ -103,8 +101,8 @@ public static class BarcodeGenerator
     private static bool Checknum(string text, int skip, int take)
     {
         var chars = text.Skip(skip).Take(take);
-        return chars.Count() == take && chars.All(x=>char.IsDigit(x));
-    }    
+        return chars.Count() == take && chars.All(x => char.IsDigit(x));
+    }
 
     private static int Checksum(IList<int> check)
     {
@@ -118,7 +116,7 @@ public static class BarcodeGenerator
         sum %= 103;
 
         return sum;
-    }    
+    }
 
     private static char GetBar(string code) => Bars[Convert.ToInt32(code, 2)];
 
@@ -142,7 +140,7 @@ public static class BarcodeGenerator
     /// <summary>   
     ///  Высота штрихкода (в строках)
     /// </summary>
-    private const int Height = 4;
+    private const int Height = 8;
 
     /// <summary>
     /// Для получения рамки штрихкода по краям
@@ -162,7 +160,7 @@ public static class BarcodeGenerator
     /// <summary>
     ///     Начальный номер паттерна для числовой строки
     /// </summary>
-    private const int StartNumbers = 105;    
+    private const int StartNumbers = 105;
 
     /// <summary>
     ///     Переключить в числовой режим кодирования

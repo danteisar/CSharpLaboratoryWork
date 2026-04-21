@@ -26,7 +26,7 @@ public class Barcode1
         {
             if (_text == value) return;
             _text = value;
-            Code = _text.Encrypt(out _paddings);
+            Code = _text.ToBarcode(out _paddings);
         }
     }
 

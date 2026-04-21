@@ -7,7 +7,7 @@ public class QrCode(string text, EncodingMode? encodingMode = null, EccLevel? co
     public QR Version => qrCodeVersion;
     public EccLevel CorrectionLevel => correctionLevel ?? EccLevel.L;
     public Mask Mask => maskNum ?? Mask.M111;
-    public string Code { get; } = QrCodeBuilder.GetQrCode(text, ref qrCodeVersion, ref encodingMode, ref correctionLevel, ref maskNum);
+    public string Code { get; } = text.ToQrCode(ref qrCodeVersion, ref encodingMode, ref correctionLevel, ref maskNum);
     public override string ToString() => Code;
 
     public static bool IsDemo {get => QrCodeBuilder.IsDemo; set=> QrCodeBuilder.IsDemo = value;}

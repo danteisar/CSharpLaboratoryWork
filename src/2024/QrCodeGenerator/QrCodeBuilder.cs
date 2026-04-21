@@ -2,7 +2,7 @@ using System.Text;
 
 namespace QrCodeGenerator;
 
-internal static class QrCodeBuilder
+public static class QrCodeBuilder
 {
     #region STATE
 
@@ -52,7 +52,7 @@ internal static class QrCodeBuilder
 
     #region GET QR-Code    
     
-    public static string GetQrCode(string text, ref QR qrCodeVersion, ref EncodingMode? codeType, ref EccLevel? needCorrectionLevel, ref Mask? maskNum)
+    public static string ToQrCode(this string text, ref QR qrCodeVersion, ref EncodingMode? codeType, ref EccLevel? needCorrectionLevel, ref Mask? maskNum)
     {
         // Полный блок с данными + подходящий уровень коррекции ошибок + нужная версия QR-кода 
         (var encodedData, needCorrectionLevel, qrCodeVersion) = GetEncodingData(text, EncodeData(text, ref codeType), codeType.Value, qrCodeVersion, needCorrectionLevel); 
