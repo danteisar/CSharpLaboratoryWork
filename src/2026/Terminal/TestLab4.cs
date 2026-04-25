@@ -1,5 +1,4 @@
 ﻿using Lab1.Codes;
-using Lab3.Abstractions;
 using Lab4.Abstractions;
 using Lab4.Products;
 using Lab4.Storage;
@@ -19,7 +18,7 @@ internal static class TestLab4
         NewBook book2 = new(200, "ВОЙНА И МИРЪ III", "Л.Н. Толстой", 1867, 200);
         using NewPackage book3 = new(book2);
 
-        IAssortment<INewProduct> assortment1 = (NewAssortment<INewProduct>)2;
+        using NewAssortment<INewProduct> assortment1 = 2;
 
         assortment1[0] = book1;
         assortment1.Push(book3);
@@ -30,7 +29,7 @@ internal static class TestLab4
         book2.Id = 400;
         book2.Price = 400;
         assortment1.ShowAndWait("Этап 2");
-        
+
         assortment1.Id = 100;
         assortment1.ShowAndWait("Этап 3");
     }

@@ -57,7 +57,6 @@ public class Assortment<T> : IAssortment<T> where T : class, IProduct
             if (index > _things.Length - 1 || index < 0) return;
             if (_things[index] != null) return;
             _things[index] = value;
-
             value.SetCode(Id, index);
         }
     }

@@ -7,7 +7,7 @@ using Lab4.Events;
 
 namespace Lab4.Storage;
 
-public sealed class NewAssortment<T> : Assortment<T>
+public sealed class NewAssortment<T> : Assortment<T>, IDisposable
     where T : class, INewProduct
 {
     #region initialization
@@ -44,21 +44,25 @@ public sealed class NewAssortment<T> : Assortment<T>
     {
         get
         {
-            if (index > _things.Length - 1 || index < 0) return null;
-            var thing = _things[index];
-            _things[index] = null;
-            _onIdChanged -= thing.SetCode;
-            thing.DataChanged -= OnProductDataChanged;
+            var thing = base[index];
+
+            if (thing is { })
+            {
+                _onIdChanged -= thing.SetCode;
+                thing.DataChanged -= OnProductDataChanged;
+            }
+           
             return thing;
         }
         set
         {
-            if (index > _things.Length - 1 || index < 0) return;
-            if (_things[index] != null) return;
-            _things[index] = value;
-            _onIdChanged += value.SetCode;
-            value.DataChanged += OnProductDataChanged;
-            value.SetCode(Id, index);
+            base[index] = value;
+
+            if (_things[index] == value)
+            {
+                _onIdChanged += value.SetCode;
+                value.DataChanged += OnProductDataChanged;
+            }
         }   
     }
 
@@ -99,6 +103,15 @@ public sealed class NewAssortment<T> : Assortment<T>
         foreach (var thing in things)
         {
             Push(thing);
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (var thing in _things.Where(x=>x is { }))
+        {
+            _onIdChanged -= thing.SetCode;
+            thing.DataChanged -= OnProductDataChanged;
         }
     }
 
