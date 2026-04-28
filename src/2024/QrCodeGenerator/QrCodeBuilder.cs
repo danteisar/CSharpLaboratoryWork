@@ -97,7 +97,7 @@ public static class QrCodeBuilder
     /// <summary>
     /// Пустая рамка вокруг QR-кода
     /// </summary>
-    private const int BORDER = 4;
+    private const int BORDER = 2;
    
     /// <summary>
     /// Размер рамки для позиционирования QR кода при сканировании

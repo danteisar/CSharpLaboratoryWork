@@ -1,4 +1,4 @@
-﻿using Barcode.Lab1;
+﻿using DataMatrixGenerator;
 using Lab1.Abstractions;
 using QrCodeGenerator;
 
@@ -19,8 +19,7 @@ public class ProductCode : IProductCode
 {
     private string _text;
     private string _qrcode;
-    private string _bardoe;
-    private int _paddings;
+    private string _dataMatrix;
 
     private QR _qr = QR.V1;
     private EncodingMode? _encodingMode = EncodingMode.Binary;
@@ -28,7 +27,7 @@ public class ProductCode : IProductCode
     private Mask? _mask = null;
 
     public string QrCode => _qrcode;
-    public string Barcode => _bardoe;
+    public string DataMatrix => _dataMatrix;
 
     public static OutputMode OutputMode { get; set; } = OutputMode.Text;
 
@@ -39,7 +38,7 @@ public class ProductCode : IProductCode
         {
             if (string.Equals(_text, value)) return;
             _text = value;
-            _bardoe = value.ToBarcode(out _paddings);
+            _dataMatrix = value.ToDataMatrix();
             _qrcode = value.ToQrCode(ref _qr, ref _encodingMode, ref _eccLevel, ref _mask);
         }
     }
@@ -50,8 +49,8 @@ public class ProductCode : IProductCode
         {
             OutputMode.Text => $"\t{_text}",
             OutputMode.QrCode => _qrcode,
-            OutputMode.Barcode => _bardoe,
-            _ => _qrcode + "\n" + Barcode + " ".PadRight(_paddings) + _text
+            OutputMode.DataMatrix => _dataMatrix,
+            _ => _qrcode + "\n" + _dataMatrix + "\t" + _text
         };
     }
 }

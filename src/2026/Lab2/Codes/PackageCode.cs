@@ -15,7 +15,7 @@ public sealed record PackageCode : IProductCode
 
     public string QrCode => _productCode.QrCode;
 
-    public string Barcode => _productCode.Barcode;
+    public string DataMatrix => _productCode.DataMatrix;
 
     public string Text
     {
@@ -31,8 +31,8 @@ public sealed record PackageCode : IProductCode
         {
             OutputMode.Text => ProductText,
             OutputMode.QrCode => _productCode.QrCode,
-            OutputMode.Barcode => _productCode.Barcode,
-            _ => QrCode + "\n" + Barcode + " ".PadRight(5) + ProductText           
+            OutputMode.DataMatrix => _productCode.DataMatrix,
+            _ => QrCode + "\n" + DataMatrix + " ".PadRight(5) + ProductText
         };
     }
 }

@@ -1,4 +1,5 @@
-﻿using Lab1.Codes;
+﻿using DataMatrixGenerator;
+using Lab1.Codes;
 using Lab4.Abstractions;
 using Lab4.Products;
 using Lab4.Storage;

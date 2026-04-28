@@ -16,11 +16,11 @@ public interface IProductCode
     /// QR-код
     /// </summary>
     string QrCode { get; }
-    
+
     /// <summary>
-    /// Штрихкод
+    /// Двумерный матричный штрих код
     /// </summary>
-    string Barcode { get; }
+    string DataMatrix { get; }
 
     /// <summary>
     /// Исходный текст

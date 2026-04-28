@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\2023\Barcode\Barcode.csproj" />
     <ProjectReference Include="..\..\2024\QrCodeGenerator\QrCodeGenerator.csproj" />
+    <ProjectReference Include="..\DataMatrixGenerator\DataMatrixGenerator.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,5 @@
-﻿using Lab1.Codes;
+﻿using DataMatrixGenerator;
+using Lab1.Codes;
 
 namespace Terminal;
 

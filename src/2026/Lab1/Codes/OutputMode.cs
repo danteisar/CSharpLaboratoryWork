@@ -12,7 +12,7 @@ public enum OutputMode
     /// <summary>
     ///     Штрихкод
     /// </summary>
-    Barcode,
+    DataMatrix,
     /// <summary>
     ///     QR Код
     /// </summary>
